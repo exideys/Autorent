@@ -1,0 +1,97 @@
+import type {
+  BenefitItem,
+  CarCategory,
+  CarItem,
+  ContactInfo,
+  HowItWorksStep,
+  PageContent,
+  PageKey,
+  PageLink,
+  ServiceItem,
+  ShowroomHint,
+} from '../types/site';
+
+export const pages: PageLink[] = [
+  { key: 'home', label: 'Home' },
+  { key: 'services', label: 'Services' },
+  { key: 'showroom', label: 'Showroom' },
+  { key: 'how-it-works', label: 'How It Works' },
+  { key: 'why-choose-us', label: 'Why Choose Us' },
+  { key: 'contact', label: 'Contact' },
+];
+
+export const pageContent: Record<PageKey, PageContent> = {
+  home: {
+    title: 'Drive the Future',
+    subtitle: 'Premium luxury vehicles at your fingertips. Experience unparalleled comfort and style.',
+  },
+  services: {
+    title: 'Premium Services',
+    subtitle: 'Discover the full range of services designed to make your rental experience seamless.',
+  },
+  showroom: {
+    title: 'Virtual Showroom',
+    subtitle: 'Our showroom page is dedicated only to luxury vehicle previews and selection details.',
+  },
+  'how-it-works': {
+    title: 'How It Works',
+    subtitle: 'A focused guide covering every step of your AutoRent booking experience.',
+  },
+  'why-choose-us': {
+    title: 'Why Choose AutoRent',
+    subtitle: 'Everything that makes our luxury rental service stand apart.',
+  },
+  contact: {
+    title: 'Contact AutoRent',
+    subtitle: 'Get in touch with our team for quick support and premium booking assistance.',
+  },
+};
+
+export const services: ServiceItem[] = [
+  { icon: 'shield', title: 'VIP Concierge', desc: 'Personalized service from booking to return' },
+  { icon: 'zap', title: 'Instant Booking', desc: 'Reserve your vehicle in seconds' },
+  { icon: 'star', title: 'Luxury Fleet', desc: 'Access to premium and exotic cars' },
+  { icon: 'car', title: '24/7 Support', desc: 'Round-the-clock assistance' },
+  { icon: 'map-pin', title: 'Global Network', desc: 'Pickup and drop-off worldwide' },
+  { icon: 'calendar', title: 'Flexible Terms', desc: 'Custom rental periods and pricing' },
+];
+
+export const showroomHints: ShowroomHint[] = [
+  { title: 'Smart Filtering', desc: 'Sorting by class, location, and availability window.' },
+  { title: 'Live Availability', desc: 'Each card checks booking dates before showing as available.' },
+  { title: 'Quick Selection', desc: 'One-click shortlist from the same page after search.' },
+];
+
+export const howItWorksSteps: HowItWorksStep[] = [
+  { step: '01', title: 'Choose & Book', desc: 'Select your preferred vehicle and dates' },
+  { step: '02', title: 'Pickup', desc: 'Meet at your chosen location' },
+  { step: '03', title: 'Enjoy', desc: 'Drive with confidence and style' },
+];
+
+export const benefits: BenefitItem[] = [
+  {
+    title: 'Unmatched Quality',
+    desc: 'Every vehicle in our fleet undergoes rigorous maintenance and inspection.',
+  },
+  {
+    title: 'Competitive Pricing',
+    desc: 'Transparent pricing with no hidden fees or surprises.',
+  },
+  {
+    title: 'Customer Satisfaction',
+    desc: 'Rated 5-star by thousands of satisfied customers worldwide.',
+  },
+  {
+    title: 'Innovation',
+    desc: 'Cutting-edge technology for seamless booking and management.',
+  },
+];
+
+export const contactInfo: ContactInfo = {
+  email: 'info@autorent.com',
+  phone: '+1 (555) 123-4567',
+};
+
+export const carCategories: Array<CarCategory | 'Any'> = ['Any', 'Luxury', 'SUV', 'Sport', 'Business'];
+
+export const showroomCars: CarItem[] = [];
