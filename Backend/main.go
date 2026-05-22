@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"strings"
 
 	"autorent-backend/internal/config"
+	"autorent-backend/internal/database"
 	"autorent-backend/internal/handlers"
 
 	"github.com/gin-contrib/cors"
@@ -20,6 +22,11 @@ func main() {
 		log.Fatal("Failed to load config:", err)
 	}
 
+	// Ensure application database exists before opening the app connection.
+	if err := database.EnsureDatabase(cfg.ServerDSN, cfg.DatabaseName); err != nil {
+		log.Fatal("Failed to prepare database:", err)
+	}
+
 	// Connect to database
 	db, err := sql.Open("mysql", cfg.DatabaseDSN)
 	if err != nil {
@@ -32,12 +39,21 @@ func main() {
 		log.Fatal("Failed to ping database:", err)
 	}
 
+	if err := database.EnsureCarsTable(db); err != nil {
+		log.Fatal("Failed to prepare cars table:", err)
+	}
+
 	// Initialize Gin router
 	r := gin.Default()
 
 	// CORS middleware
+	allowedOrigins := strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ",")
+	if len(allowedOrigins) == 1 && allowedOrigins[0] == "" {
+		allowedOrigins = []string{"http://localhost:3000", "http://localhost:5173"}
+	}
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"}, // Allow all origins for now (adjust for production)
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		AllowCredentials: true,
@@ -45,6 +61,8 @@ func main() {
 
 	// Routes
 	r.GET("/health", handlers.HealthHandler)
+	r.GET("/db/health", handlers.DatabaseHealthHandler(db))
+	r.GET("/cars", handlers.CarsHandler(db))
 
 	// Get port from environment or default
 	port := os.Getenv("PORT")

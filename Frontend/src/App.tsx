@@ -1,10 +1,56 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Car, MapPin, Calendar, Clock, Shield, Zap, Star, Phone, Mail, Menu, X } from 'lucide-react';
+import { Car, MapPin, Calendar, Clock, Shield, Zap, Star, Phone, Mail, Menu, X, Gauge, Users } from 'lucide-react';
+
+interface CarItem {
+  id: number;
+  name: string;
+  category: string;
+  location: string;
+  seats: number;
+  transmission: string;
+  pricePerDay: number;
+  image: string;
+}
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+});
 
 const App: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [activePage, setActivePage] = React.useState('home');
+  const [cars, setCars] = React.useState<CarItem[]>([]);
+  const [carsLoading, setCarsLoading] = React.useState(true);
+  const [carsError, setCarsError] = React.useState<string | null>(null);
+
+  const loadCars = React.useCallback(async () => {
+    try {
+      setCarsLoading(true);
+      setCarsError(null);
+
+      const response = await fetch(`${API_BASE_URL}/cars`);
+      if (!response.ok) {
+        throw new Error(`Backend returned ${response.status}`);
+      }
+
+      const data = await response.json();
+      setCars(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setCars([]);
+      setCarsError(error instanceof Error ? error.message : 'Failed to load cars');
+    } finally {
+      setCarsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadCars();
+  }, [loadCars]);
 
   const pages = [
     { key: 'home', label: 'Home' },
@@ -290,28 +336,89 @@ const App: React.FC = () => {
             Virtual Showroom
           </motion.h2>
           <div className="bg-white/5 backdrop-blur-xl border border-cyan-500/20 rounded-3xl p-8 shadow-2xl">
-            <div className="flex flex-col lg:flex-row gap-8 items-center">
-              <div className="flex-shrink-0 bg-gradient-to-br from-cyan-500/15 to-violet-500/10 rounded-3xl p-8">
-                <Car size={72} className="text-cyan-400" />
-              </div>
-              <div className="space-y-4">
-                <p className="text-gray-300 text-lg max-w-3xl">
-                  Vehicle cards are not hardcoded anymore. This section is ready to render live inventory from the database.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[
-                    { title: 'DB Integration Ready', desc: 'Showroom list will come from backend API responses.' },
-                    { title: 'Live Availability', desc: 'Only currently available vehicles will be displayed.' },
-                    { title: 'Dynamic Filters', desc: 'Filtering will be handled using database-backed data.' },
-                  ].map((item) => (
-                    <div key={item.title} className="bg-black/50 border border-cyan-500/10 rounded-3xl p-5">
-                      <h3 className="text-lg font-semibold text-cyan-300 mb-2">{item.title}</h3>
-                      <p className="text-gray-400">{item.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <p aria-live="polite" className="text-gray-300 text-lg">
+                {carsLoading && 'Loading vehicles from TiDB Cloud...'}
+                {!carsLoading && carsError && `Could not load vehicles: ${carsError}`}
+                {!carsLoading && !carsError && `${cars.length} vehicles loaded from TiDB Cloud.`}
+              </p>
+              <button
+                type="button"
+                onClick={loadCars}
+                className="self-start rounded-2xl border border-cyan-400/40 px-4 py-2 text-sm text-cyan-200 transition-colors hover:bg-cyan-400/10 md:self-auto"
+              >
+                Refresh
+              </button>
             </div>
+
+            {carsLoading ? (
+              <div className="rounded-3xl border border-cyan-500/10 bg-black/40 py-12 text-center text-gray-300">
+                Fetching live inventory...
+              </div>
+            ) : carsError ? (
+              <div className="rounded-3xl border border-red-500/30 bg-red-950/20 p-6 text-red-100">
+                Backend or TiDB is not responding. Check `docker compose logs -f backend` and `/api/db/health`.
+              </div>
+            ) : cars.length === 0 ? (
+              <div className="rounded-3xl border border-cyan-500/10 bg-black/40 py-12 text-center">
+                <p className="text-xl text-gray-300">No vehicles found.</p>
+                <p className="mt-2 text-sm text-gray-400">The backend is connected, but the cars table is empty.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {cars.map((car) => (
+                  <motion.article
+                    key={car.id}
+                    whileHover={{ scale: 1.02 }}
+                    className="overflow-hidden rounded-3xl border border-cyan-500/20 bg-black/45 shadow-lg transition-all duration-300 hover:shadow-cyan-500/25"
+                  >
+                    <div className="relative h-44">
+                      <img
+                        src={car.image || '/hero-main.png'}
+                        alt={car.name}
+                        className="h-full w-full object-cover"
+                        onError={(event) => {
+                          event.currentTarget.onerror = null;
+                          event.currentTarget.src = '/hero-main.png';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                      <span className="absolute left-3 top-3 rounded-full border border-cyan-300/30 bg-cyan-500/20 px-3 py-1 text-xs text-cyan-100">
+                        {car.category}
+                      </span>
+                    </div>
+                    <div className="p-5">
+                      <h3 className="mb-2 text-xl font-semibold">{car.name}</h3>
+                      <div className="mb-4 space-y-2 text-sm text-gray-300">
+                        <div className="flex items-center gap-2">
+                          <MapPin size={15} className="text-cyan-300" />
+                          <span>{car.location}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Users size={15} className="text-cyan-300" />
+                          <span>{car.seats} seats</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Gauge size={15} className="text-cyan-300" />
+                          <span>{car.transmission}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-cyan-300">
+                          {currencyFormatter.format(car.pricePerDay)} / day
+                        </p>
+                        <button
+                          type="button"
+                          className="rounded-2xl bg-gradient-to-r from-cyan-500 to-violet-600 px-4 py-2 text-sm transition-colors hover:from-cyan-600 hover:to-violet-700"
+                        >
+                          Book Now
+                        </button>
+                      </div>
+                    </div>
+                  </motion.article>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
