@@ -30,8 +30,4 @@ func TestHealthHandler(t *testing.T) {
 	if recorder.Body.String() != expectedBody {
 		t.Fatalf("expected body %s, got %s", expectedBody, recorder.Body.String())
 	}
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 9d605a73e8697428bdd1993d386eb1d4a9b41b97
