@@ -1,22 +1,32 @@
+# Build stage
 FROM golang:1.21-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+# Copy go mod files
+COPY go.mod ./
+
+# Download dependencies
 RUN go mod download
 
+# Copy source code
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o autorent-backend .
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
-FROM alpine:3.20
+# Runtime stage
+FROM alpine:latest
 
-RUN apk add --no-cache ca-certificates wget
+RUN apk --no-cache add ca-certificates
 
-WORKDIR /app
+WORKDIR /root/
 
-COPY --from=builder /app/autorent-backend ./autorent-backend
+# Copy the binary from builder stage
+COPY --from=builder /app/main .
 
+# Expose port
 EXPOSE 8080
 
-CMD ["./autorent-backend"]
+# Command to run
+CMD ["./main"]
