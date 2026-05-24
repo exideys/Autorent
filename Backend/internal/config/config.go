@@ -13,11 +13,11 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	dbUser := getEnv("DB_USER", "root")
+	dbUser := getEnvAny([]string{"DB_USER", "DB_USERNAME"}, "root")
 	dbPassword := getEnv("DB_PASSWORD", "")
 	dbHost := getEnv("DB_HOST", "localhost")
 	dbPort := getEnv("DB_PORT", "4000")
-	dbName := getEnv("DB_NAME", "autorent")
+	dbName := getEnvAny([]string{"DB_NAME", "DB_DATABASE"}, "autorent")
 
 	if err := mysql.RegisterTLSConfig("tidb", &tls.Config{
 		MinVersion: tls.VersionTLS12,
@@ -33,6 +33,15 @@ func Load() (*Config, error) {
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvAny(keys []string, defaultValue string) string {
+	for _, key := range keys {
+		if value := os.Getenv(key); value != "" {
+			return value
+		}
 	}
 	return defaultValue
 }

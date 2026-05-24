@@ -1,29 +1,59 @@
 name: CI
 
 on:
-  pull_request:
-    branches:
-      - main
   push:
-    branches:
-      - main
-      - feature/**
-      - fix/**
+  pull_request:
 
 jobs:
-  frontend:
-    name: Frontend lint and build
+  backend:
+    name: Backend
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend
 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: Backend/go.mod
+          cache-dependency-path: Backend/go.sum
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Check formatting
+        run: |
+          files="$(gofmt -l .)"
+          if [ -n "$files" ]; then
+            echo "$files"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build
+        run: go build -o /tmp/autorent-backend .
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: Frontend
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -33,48 +63,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run ESLint
+      - name: Lint
         run: npm run lint
 
-      - name: Build frontend
+      - name: Build
         run: npm run build
 
-  backend:
-    name: Backend test and build
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: Backend
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.21"
-          cache-dependency-path: Backend/go.sum
-
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Run tests
-        run: go test ./...
-
-      - name: Build backend
-        run: go build ./...
-
   docker:
-    name: Backend Docker build
+    name: Docker Build
     runs-on: ubuntu-latest
     needs:
       - backend
+      - frontend
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build backend Docker image
+      - name: Build backend image
         run: docker build -t autorent-backend:ci ./Backend
+
+      - name: Build frontend image
+        run: docker build -t autorent-frontend:ci ./Frontend
