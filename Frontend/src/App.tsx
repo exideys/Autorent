@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Car, MapPin, Calendar, Clock, Shield, Zap, Star, Phone, Mail, Menu, X } from 'lucide-react';
+import { AiCarAssistant } from './components/AiCarAssistant';
 
 const App: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -10,6 +11,7 @@ const App: React.FC = () => {
     { key: 'home', label: 'Home' },
     { key: 'services', label: 'Services' },
     { key: 'showroom', label: 'Showroom' },
+    { key: 'ai-assistant', label: 'AI Assistant' },
     { key: 'how-it-works', label: 'How It Works' },
     { key: 'why-choose-us', label: 'Why Choose Us' },
     { key: 'contact', label: 'Contact' },
@@ -31,6 +33,12 @@ const App: React.FC = () => {
     showroom: {
       title: 'Virtual Showroom',
       subtitle: 'Our showroom page is dedicated only to luxury vehicle previews and selection details.',
+      buttonText: 'Back to Overview',
+      buttonAction: () => setActivePage('home'),
+    },
+    'ai-assistant': {
+      title: 'AI Car Assistant',
+      subtitle: 'Describe your trip, budget, passengers, and preferences. Our AI will recommend suitable cars from the available fleet.',
       buttonText: 'Back to Overview',
       buttonAction: () => setActivePage('home'),
     },
@@ -315,6 +323,14 @@ const App: React.FC = () => {
           </div>
         </div>
       </section>
+      )}
+
+      {(isHome || activePage === 'ai-assistant') && (
+        <section className="px-6 py-20">
+        <div className="mx-auto max-w-7xl">
+          <AiCarAssistant />
+        </div>
+        </section>
       )}
 
       {(isHome || activePage === 'how-it-works') && (
