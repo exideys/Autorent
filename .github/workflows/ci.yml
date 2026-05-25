@@ -70,7 +70,7 @@ jobs:
         run: npm run build
 
   docker:
-    name: Docker Build
+    name: Docker Build and Smoke Test
     runs-on: ubuntu-latest
     needs:
       - backend
@@ -85,3 +85,73 @@ jobs:
 
       - name: Build frontend image
         run: docker build -t autorent-frontend:ci ./Frontend
+
+      - name: Start MySQL for backend smoke test
+        run: |
+          docker network create autorent-ci
+          docker run -d \
+            --name autorent-mysql \
+            --network autorent-ci \
+            -e MYSQL_ROOT_PASSWORD=autorent \
+            -e MYSQL_ROOT_HOST=% \
+            -e MYSQL_DATABASE=autorent \
+            mysql:8.4
+
+          for i in {1..30}; do
+            if docker exec autorent-mysql mysqladmin ping -h 127.0.0.1 -uroot -pautorent --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs autorent-mysql
+          exit 1
+
+      - name: Smoke test backend image
+        run: |
+          docker run -d \
+            --name autorent-backend \
+            --network autorent-ci \
+            --network-alias backend \
+            -p 18080:8080 \
+            -e DB_HOST=autorent-mysql \
+            -e DB_PORT=3306 \
+            -e DB_NAME=autorent \
+            -e DB_USER=root \
+            -e DB_PASSWORD=autorent \
+            -e DB_TLS=disable \
+            autorent-backend:ci
+
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:18080/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs autorent-backend
+          exit 1
+
+      - name: Smoke test frontend image
+        run: |
+          docker run -d \
+            --name autorent-frontend \
+            --network autorent-ci \
+            -p 13000:80 \
+            autorent-frontend:ci
+
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:13000/; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs autorent-frontend
+          exit 1
+
+      - name: Clean up Docker smoke test
+        if: always()
+        run: |
+          docker rm -f autorent-frontend autorent-backend autorent-mysql 2>/dev/null || true
+          docker network rm autorent-ci 2>/dev/null || true
