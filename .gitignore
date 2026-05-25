@@ -1,5 +1,13 @@
+# OS files
+.DS_Store
+**/.DS_Store
+
+# Editor/IDE
+.idea/
+.vscode/
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,49 +15,37 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Code coverage profiles and other test artifacts
-*.out
-coverage.*
-*.coverprofile
-profile.cov
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-# Go workspace file
-go.work
-go.work.sum
-
-# env file
+# Environment files
 .env
 .env.local
 .env.*.local
 Backend/.env
 Frontend/.env
 
-# Editor/IDE
-# .idea/
-# .vscode/
-
-# Node/Vite
+# Frontend dependencies and build output
 node_modules/
 Frontend/node_modules/
+dist/
+dist-ssr/
 Frontend/dist/
 Frontend/dist-ssr/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 
 # Go build artifacts
+Backend/autorent-backend
 Backend/bin/
 Backend/tmp/
+*.test
 
-# Docker/local logs
-logs/
-*.log
+# Code coverage profiles and test artifacts
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+project.diff
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Dependency directories
+# vendor/

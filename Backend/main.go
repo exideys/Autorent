@@ -6,8 +6,10 @@ import (
 	"os"
 	"strings"
 
+	"autorent-backend/internal/auth"
 	"autorent-backend/internal/config"
 	"autorent-backend/internal/handlers"
+	"autorent-backend/internal/repository"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -47,12 +49,23 @@ func main() {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Admin-Setup-Token"},
 		AllowCredentials: allowCredentials,
 	}))
 
 	// Routes
 	r.GET("/health", handlers.HealthHandler)
+	tokenManager := auth.NewTokenManager(cfg.JWTSecret, cfg.JWTTokenTTL)
+	carRepository := repository.NewCarRepository(db)
+	userRepository := repository.NewUserRepository(db)
+
+	api := r.Group("/api")
+	handlers.RegisterAuthRoutes(api.Group("/auth"), userRepository, tokenManager, cfg.AdminSetupToken)
+	handlers.RegisterCarRoutes(api, carRepository)
+
+	adminAPI := api.Group("/admin")
+	adminAPI.Use(handlers.RequireAdmin(tokenManager))
+	handlers.RegisterAdminCarRoutes(adminAPI, carRepository)
 
 	// Get port from environment or default
 	port := os.Getenv("PORT")
