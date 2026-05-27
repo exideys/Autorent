@@ -109,6 +109,10 @@ func (h *AuthHandler) register(c *gin.Context, role string) {
 		respondError(c, http.StatusBadRequest, "invalid registration payload")
 		return
 	}
+	if !input.HasName() {
+		respondError(c, http.StatusBadRequest, "invalid registration payload")
+		return
+	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {

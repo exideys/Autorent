@@ -4,7 +4,8 @@ export type PageKey =
   | 'showroom'
   | 'how-it-works'
   | 'why-choose-us'
-  | 'contact';
+  | 'contact'
+  | 'admin';
 
 export type CarCategory = 'Luxury' | 'SUV' | 'Sport' | 'Business';
 
@@ -45,23 +46,6 @@ export interface BenefitItem {
 export interface ContactInfo {
   email: string;
   phone: string;
-}
-
-export interface CarAvailabilityWindow {
-  from: string;
-  to: string;
-}
-
-export interface CarItem {
-  id: number;
-  name: string;
-  category: CarCategory;
-  location: string;
-  seats: number;
-  transmission: 'Automatic' | 'Manual';
-  pricePerDay: number;
-  image: string;
-  availability: CarAvailabilityWindow[];
 }
 
 export interface BookingFormValues {

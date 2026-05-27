@@ -46,13 +46,16 @@ func TestRegisterUserCreatesUserAndToken(t *testing.T) {
 		if input.Email != "user@example.com" {
 			t.Fatalf("unexpected email %q", input.Email)
 		}
+		if input.FirstName != "Test" || input.LastName != "User" {
+			t.Fatalf("unexpected registration name parts: %+v", input)
+		}
 		if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte("password123")); err != nil {
 			t.Fatalf("password was not hashed correctly: %v", err)
 		}
 
 		return &models.User{
 			ID:    10,
-			Name:  input.Name,
+			Name:  input.DisplayName(),
 			Email: input.Email,
 			Role:  role,
 		}, nil
@@ -63,6 +66,8 @@ func TestRegisterUserCreatesUserAndToken(t *testing.T) {
 
 	req, err := http.NewRequest(http.MethodPost, "/api/auth/register", strings.NewReader(`{
 		"name":"Test User",
+		"first_name":"Test",
+		"last_name":"User",
 		"email":"user@example.com",
 		"password":"password123"
 	}`))
@@ -147,7 +152,7 @@ func TestRegisterAdminCreatesAdminWithSetupToken(t *testing.T) {
 
 		return &models.User{
 			ID:    1,
-			Name:  input.Name,
+			Name:  input.DisplayName(),
 			Email: input.Email,
 			Role:  role,
 		}, nil
