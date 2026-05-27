@@ -1,7 +1,6 @@
 import type {
   BenefitItem,
   CarCategory,
-  CarItem,
   ContactInfo,
   HowItWorksStep,
   PageContent,
@@ -45,6 +44,10 @@ export const pageContent: Record<PageKey, PageContent> = {
     title: 'Contact AutoRent',
     subtitle: 'Get in touch with our team for quick support and premium booking assistance.',
   },
+  admin: {
+    title: 'Admin Dashboard',
+    subtitle: 'Manage live inventory and monitor fleet status.',
+  },
 };
 
 export const services: ServiceItem[] = [
@@ -57,9 +60,9 @@ export const services: ServiceItem[] = [
 ];
 
 export const showroomHints: ShowroomHint[] = [
-  { title: 'Smart Filtering', desc: 'Sorting by class, location, and availability window.' },
-  { title: 'Live Availability', desc: 'Each card checks booking dates before showing as available.' },
-  { title: 'Quick Selection', desc: 'One-click shortlist from the same page after search.' },
+  { title: 'Database Inventory', desc: 'Vehicle cards are rendered from the backend car API.' },
+  { title: 'Live Availability', desc: 'Only cars marked as available are shown publicly.' },
+  { title: 'Admin Managed', desc: 'Fleet changes appear after admin create, edit, or delete actions.' },
 ];
 
 export const howItWorksSteps: HowItWorksStep[] = [
@@ -93,5 +96,3 @@ export const contactInfo: ContactInfo = {
 };
 
 export const carCategories: Array<CarCategory | 'Any'> = ['Any', 'Luxury', 'SUV', 'Sport', 'Business'];
-
-export const showroomCars: CarItem[] = [];

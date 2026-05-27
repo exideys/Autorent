@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 const (
 	UserRoleUser  = "user"
@@ -21,17 +24,47 @@ type UserWithPassword struct {
 }
 
 type RegisterInput struct {
-	Name     string `json:"name" binding:"required,max=100"`
-	Email    string `json:"email" binding:"required,email,max=255"`
-	Password string `json:"password" binding:"required,min=8,max=72"`
+	Name      string `json:"name" binding:"omitempty,max=100"`
+	FirstName string `json:"first_name" binding:"omitempty,max=50"`
+	LastName  string `json:"last_name" binding:"omitempty,max=50"`
+	Email     string `json:"email" binding:"required,email,max=100"`
+	Password  string `json:"password" binding:"required,min=8,max=72"`
 }
 
 type LoginInput struct {
-	Email    string `json:"email" binding:"required,email,max=255"`
+	Email    string `json:"email" binding:"required,email,max=100"`
 	Password string `json:"password" binding:"required"`
 }
 
 type AuthResponse struct {
 	Token string `json:"token"`
 	User  User   `json:"user"`
+}
+
+func (input RegisterInput) HasName() bool {
+	return strings.TrimSpace(input.Name) != "" ||
+		strings.TrimSpace(input.FirstName) != "" ||
+		strings.TrimSpace(input.LastName) != ""
+}
+
+func (input RegisterInput) NameParts() (string, string) {
+	firstName := strings.TrimSpace(input.FirstName)
+	lastName := strings.TrimSpace(input.LastName)
+
+	if firstName == "" && lastName == "" {
+		parts := strings.Fields(input.Name)
+		if len(parts) > 0 {
+			firstName = parts[0]
+		}
+		if len(parts) > 1 {
+			lastName = strings.Join(parts[1:], " ")
+		}
+	}
+
+	return firstName, lastName
+}
+
+func (input RegisterInput) DisplayName() string {
+	firstName, lastName := input.NameParts()
+	return strings.TrimSpace(strings.Join([]string{firstName, lastName}, " "))
 }
