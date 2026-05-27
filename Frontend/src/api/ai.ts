@@ -20,6 +20,7 @@ export type Car = {
 export type CarRecommendationResponse = {
   answer: string;
   cars: Car[];
+  total_matches: number;
 };
 
 type ApiErrorResponse = {

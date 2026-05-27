@@ -69,9 +69,9 @@ export function AiCarAssistant() {
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
             <p className="mb-2 font-medium text-white">Example requests:</p>
             <ul className="space-y-1">
-              <li>“для сімʼї з 5 людей до 240 доларів на день”</li>
-              <li>“premium car for business under 230 dollars per day”</li>
-              <li>“електрокар на 5 місць”</li>
+              <li>“Для сімʼї з 5 людей до 240 доларів на день”</li>
+              <li>“Premium car for business under 230 dollars per day”</li>
+              <li>“Електрокар на 5 місць”</li>
             </ul>
           </div>
         </div>

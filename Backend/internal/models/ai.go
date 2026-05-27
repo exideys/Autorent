@@ -5,8 +5,9 @@ type CarRecommendationRequest struct {
 }
 
 type CarRecommendationResponse struct {
-	Answer string `json:"answer"`
-	Cars   []Car  `json:"cars"`
+	Answer       string `json:"answer"`
+	Cars         []Car  `json:"cars"`
+	TotalMatches int    `json:"total_matches"`
 }
 
 type ErrorResponse struct {
@@ -21,5 +22,6 @@ type CarSearchFilters struct {
 	PreferredClass    string  `json:"preferred_class"`
 	Transmission      string  `json:"transmission"`
 	Purpose           string  `json:"purpose"`
+	SortBy            string  `json:"sort_by"`
 	OnlyAvailable     bool    `json:"only_available"`
 }

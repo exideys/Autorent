@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"autorent-backend/internal/config"
 	"autorent-backend/internal/handlers"
@@ -25,6 +26,7 @@ func main() {
 
 	log.Printf("Gemini API key configured: %t", cfg.GeminiAPIKey != "")
 	log.Printf("Gemini model: %s", cfg.GeminiModel)
+	log.Printf("Use mock cars: %t", cfg.UseMockCars)
 	// Connect to database
 	/*db, err := sql.Open("mysql", cfg.DatabaseDSN)
 	if err != nil {
@@ -39,7 +41,7 @@ func main() {
 
 	// Connect to database if it is available.
 	// For now, AI car recommendations use mock data, so the backend can run without DB.
-	db, err := sql.Open("mysql", cfg.DatabaseDSN)
+	/*db, err := sql.Open("mysql", cfg.DatabaseDSN)
 	if err != nil {
 		log.Printf("Database initialization skipped: %v", err)
 	} else {
@@ -50,6 +52,34 @@ func main() {
 		} else {
 			log.Println("Database connection established")
 		}
+	}*/
+
+	var db *sql.DB
+	var carRepository repositories.CarRepository
+
+	if cfg.UseMockCars {
+		log.Println("Using mock car repository")
+		carRepository = repositories.NewMockCarRepository()
+	} else {
+		log.Println("Using TiDB/MySQL car repository")
+
+		db, err = sql.Open("mysql", cfg.DatabaseDSN)
+		if err != nil {
+			log.Fatal("Failed to initialize database connection:", err)
+		}
+		defer db.Close()
+
+		db.SetMaxOpenConns(10)
+		db.SetMaxIdleConns(5)
+		db.SetConnMaxLifetime(3 * time.Minute)
+		db.SetConnMaxIdleTime(1 * time.Minute)
+
+		if err := db.Ping(); err != nil {
+			log.Fatal("Failed to ping database:", err)
+		}
+
+		log.Println("Database connection established")
+		carRepository = repositories.NewMySQLCarRepository(db)
 	}
 
 	// Initialize Gin router
@@ -71,7 +101,7 @@ func main() {
 	}))
 
 	// Dependencies
-	carRepository := repositories.NewMockCarRepository()
+	//carRepository := repositories.NewMockCarRepository()
 	carRecommendationService := aiservice.NewCarRecommendationService(
 		cfg.GeminiAPIKey,
 		cfg.GeminiModel,
