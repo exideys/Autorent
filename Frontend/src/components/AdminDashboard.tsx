@@ -60,9 +60,11 @@ const inputClass =
 
 const labelClass = 'block space-y-2 text-sm text-gray-300';
 
+const fallbackImageUrl = `${import.meta.env.BASE_URL}hero-main.png`;
+
 const mainImage = (car: Car) => {
   const selectedImage = car.images.find((image) => image.is_main) || car.images[0];
-  return selectedImage?.image_url || '/hero-main.png';
+  return selectedImage?.image_url || fallbackImageUrl;
 };
 
 const optionalNumber = (value: string) => {
@@ -477,7 +479,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onUnauthorized }: AdminDash
                       className="h-32 w-full rounded-lg object-cover lg:h-24 lg:w-32"
                       onError={(event) => {
                         event.currentTarget.onerror = null;
-                        event.currentTarget.src = '/hero-main.png';
+                        event.currentTarget.src = fallbackImageUrl;
                       }}
                     />
                     <div>
