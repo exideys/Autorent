@@ -17,6 +17,8 @@ func TestLoadBuildsDatabaseAndAuthConfigFromEnv(t *testing.T) {
 	t.Setenv("JWT_SECRET", "jwt-secret")
 	t.Setenv("JWT_TOKEN_TTL", "2h")
 	t.Setenv("ADMIN_SETUP_TOKEN", "setup-token")
+	t.Setenv("GEMINI_API_KEY", "gemini-key")
+	t.Setenv("GEMINI_MODEL", "gemini-test-model")
 
 	cfg, err := Load()
 	if err != nil {
@@ -54,6 +56,12 @@ func TestLoadBuildsDatabaseAndAuthConfigFromEnv(t *testing.T) {
 	}
 	if cfg.AdminSetupToken != "setup-token" {
 		t.Fatalf("expected configured admin setup token")
+	}
+	if cfg.GeminiAPIKey != "gemini-key" {
+		t.Fatalf("expected configured gemini api key")
+	}
+	if cfg.GeminiModel != "gemini-test-model" {
+		t.Fatalf("expected configured gemini model")
 	}
 }
 
@@ -106,5 +114,19 @@ func TestGetEnvDurationFallsBackOnInvalidValue(t *testing.T) {
 	duration := getEnvDuration("JWT_TOKEN_TTL", 30*time.Minute)
 	if duration != 30*time.Minute {
 		t.Fatalf("expected fallback duration, got %s", duration)
+	}
+}
+
+func TestLoadDefaultsGeminiModel(t *testing.T) {
+	t.Setenv("DB_TLS", "false")
+	t.Setenv("GEMINI_MODEL", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	if cfg.GeminiModel != "gemini-2.5-flash" {
+		t.Fatalf("expected default gemini model, got %q", cfg.GeminiModel)
 	}
 }

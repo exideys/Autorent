@@ -84,3 +84,28 @@ export interface CarInput {
   status?: string;
   images?: CarImageInput[];
 }
+
+export interface RecommendedCar {
+  id: number;
+  brand: string;
+  model: string;
+  year: number;
+  car_class: string;
+  body_type: string;
+  transmission: string;
+  fuel_type: string;
+  seats: number;
+  doors: number;
+  engine_volume?: number;
+  horsepower: number;
+  price_per_day: number;
+  deposit: number;
+  color: string;
+  status: string;
+}
+
+export interface CarRecommendationResponse {
+  answer: string;
+  cars: RecommendedCar[];
+  total_matches: number;
+}

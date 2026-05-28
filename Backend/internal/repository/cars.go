@@ -61,6 +61,43 @@ func (r *CarRepository) List(ctx context.Context, filters models.CarFilters) ([]
 	return scanCars(rows)
 }
 
+func (r *CarRepository) SearchRecommendations(ctx context.Context, filters models.CarRecommendationFilters) ([]models.Car, error) {
+	query := baseCarQuery()
+	args := make([]any, 0)
+	conditions := make([]string, 0)
+
+	if filters.OnlyAvailable {
+		conditions = append(conditions, "c.status = ?")
+		args = append(args, "available")
+	}
+	if filters.MinSeats > 0 {
+		conditions = append(conditions, "c.seats >= ?")
+		args = append(args, filters.MinSeats)
+	}
+	if filters.MaxPricePerDay > 0 {
+		conditions = append(conditions, "c.price_per_day <= ?")
+		args = append(args, filters.MaxPricePerDay)
+	}
+	if strings.TrimSpace(filters.PreferredBrand) != "" {
+		conditions = append(conditions, "LOWER(c.brand) LIKE LOWER(?)")
+		args = append(args, "%"+strings.TrimSpace(filters.PreferredBrand)+"%")
+	}
+
+	if len(conditions) > 0 {
+		query += " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	query += " ORDER BY c.id DESC, ci.is_main DESC, ci.sort_order ASC, ci.id ASC"
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanCars(rows)
+}
+
 func (r *CarRepository) GetByID(ctx context.Context, id int64) (*models.Car, error) {
 	rows, err := r.db.QueryContext(ctx, baseCarQuery()+" WHERE c.id = ?"+carOrderBy("", ""), id)
 	if err != nil {
@@ -356,6 +393,7 @@ func scanCars(rows *sql.Rows) ([]models.Car, error) {
 		var engineVolume sql.NullFloat64
 		var horsepower sql.NullInt64
 		var color sql.NullString
+		var status sql.NullString
 		var imageID sql.NullInt64
 		var imageCarID sql.NullInt64
 		var imageURL sql.NullString
@@ -378,7 +416,7 @@ func scanCars(rows *sql.Rows) ([]models.Car, error) {
 			&car.PricePerDay,
 			&car.Deposit,
 			&color,
-			&car.Status,
+			&status,
 			&car.CreatedAt,
 			&imageID,
 			&imageCarID,
@@ -399,6 +437,9 @@ func scanCars(rows *sql.Rows) ([]models.Car, error) {
 		}
 		if color.Valid {
 			car.Color = &color.String
+		}
+		if status.Valid {
+			car.Status = status.String
 		}
 		car.Images = []models.CarImage{}
 

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"os"
 	"strings"
 
+	"autorent-backend/internal/ai"
 	"autorent-backend/internal/auth"
 	"autorent-backend/internal/config"
 	"autorent-backend/internal/handlers"
@@ -58,10 +60,17 @@ func main() {
 	tokenManager := auth.NewTokenManager(cfg.JWTSecret, cfg.JWTTokenTTL)
 	carRepository := repository.NewCarRepository(db)
 	userRepository := repository.NewUserRepository(db)
+	var aiExtractor ai.CarFilterExtractor
+	aiExtractor, err = ai.NewGeminiExtractor(context.Background(), cfg.GeminiAPIKey, cfg.GeminiModel)
+	if err != nil {
+		log.Printf("AI car assistant disabled: %v", err)
+		aiExtractor = &ai.UnavailableExtractor{}
+	}
 
 	api := r.Group("/api")
 	handlers.RegisterAuthRoutes(api.Group("/auth"), userRepository, tokenManager, cfg.AdminSetupToken)
 	handlers.RegisterCarRoutes(api, carRepository)
+	handlers.RegisterAIRoutes(api, carRepository, aiExtractor)
 
 	adminAPI := api.Group("/admin")
 	adminAPI.Use(handlers.RequireAdmin(tokenManager))

@@ -100,6 +100,62 @@ func TestCarRepositoryGetByIDNotFound(t *testing.T) {
 	}
 }
 
+func TestCarRepositorySearchRecommendationsAppliesHardFilters(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+
+	createdAt := time.Now()
+	mock.ExpectQuery("c.status = \\?").
+		WithArgs("available", 5, 220.0, "%Tesla%").
+		WillReturnRows(carRows().
+			AddRow(
+				7,
+				"Tesla",
+				"Model Y",
+				2024,
+				"Electric Comfort",
+				"SUV",
+				"Automatic",
+				"Electric",
+				5,
+				5,
+				nil,
+				nil,
+				210.00,
+				500.00,
+				nil,
+				nil,
+				createdAt,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			))
+
+	repo := NewCarRepository(db)
+	cars, err := repo.SearchRecommendations(context.Background(), models.CarRecommendationFilters{
+		MinSeats:       5,
+		MaxPricePerDay: 220,
+		PreferredBrand: "Tesla",
+		OnlyAvailable:  true,
+	})
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if len(cars) != 1 {
+		t.Fatalf("expected 1 car, got %d", len(cars))
+	}
+	car := cars[0]
+	if car.Brand != "Tesla" || car.Horsepower != nil || car.Color != nil || car.Status != "" {
+		t.Fatalf("unexpected scanned car: %+v", car)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
 func TestCarRepositoryCreateWithImages(t *testing.T) {
 	db, mock, cleanup := newMockDB(t)
 	defer cleanup()
