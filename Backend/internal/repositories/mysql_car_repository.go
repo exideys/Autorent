@@ -106,11 +106,13 @@ func (r *MySQLCarRepository) FindAvailableCars(filters models.CarSearchFilters) 
 		}
 
 		if horsepower.Valid {
-			car.Horsepower = int(horsepower.Int64)
+			value := int(horsepower.Int64)
+			car.Horsepower = &value
 		}
 
 		if color.Valid {
-			car.Color = color.String
+			value := color.String
+			car.Color = &value
 		}
 
 		if status.Valid {

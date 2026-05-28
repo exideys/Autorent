@@ -7,9 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"autorent-backend/internal/auth"
 	"autorent-backend/internal/config"
 	"autorent-backend/internal/handlers"
-	"autorent-backend/internal/repositories"
+	airepositories "autorent-backend/internal/repositories"
+	"autorent-backend/internal/repository"
 	aiservice "autorent-backend/internal/services/ai"
 
 	"github.com/gin-contrib/cors"
@@ -18,7 +20,6 @@ import (
 )
 
 func main() {
-	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal("Failed to load config:", err)
@@ -26,82 +27,91 @@ func main() {
 
 	log.Printf("Gemini API key configured: %t", cfg.GeminiAPIKey != "")
 	log.Printf("Gemini model: %s", cfg.GeminiModel)
-	log.Printf("Use mock cars: %t", cfg.UseMockCars)
-	// Connect to database
-	/*db, err := sql.Open("mysql", cfg.DatabaseDSN)
-	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
-	}
-	defer db.Close()
+	log.Printf("Use mock cars for AI: %t", cfg.UseMockCars)
 
-	// Test database connection
-	if err := db.Ping(); err != nil {
-		log.Fatal("Failed to ping database:", err)
-	}*/
-
-	// Connect to database if it is available.
-	// For now, AI car recommendations use mock data, so the backend can run without DB.
-	/*db, err := sql.Open("mysql", cfg.DatabaseDSN)
+	db, err := openDatabase(cfg.DatabaseDSN)
 	if err != nil {
-		log.Printf("Database initialization skipped: %v", err)
+		if !cfg.UseMockCars {
+			log.Fatal("Failed to connect to database:", err)
+		}
+		log.Printf("Database unavailable, continuing with AI mock cars only: %v", err)
 	} else {
 		defer db.Close()
-
-		if err := db.Ping(); err != nil {
-			log.Printf("Database is unavailable, continuing without DB: %v", err)
-		} else {
-			log.Println("Database connection established")
-		}
-	}*/
-
-	var db *sql.DB
-	var carRepository repositories.CarRepository
-
-	if cfg.UseMockCars {
-		log.Println("Using mock car repository")
-		carRepository = repositories.NewMockCarRepository()
-	} else {
-		log.Println("Using TiDB/MySQL car repository")
-
-		db, err = sql.Open("mysql", cfg.DatabaseDSN)
-		if err != nil {
-			log.Fatal("Failed to initialize database connection:", err)
-		}
-		defer db.Close()
-
-		db.SetMaxOpenConns(10)
-		db.SetMaxIdleConns(5)
-		db.SetConnMaxLifetime(3 * time.Minute)
-		db.SetConnMaxIdleTime(1 * time.Minute)
-
-		if err := db.Ping(); err != nil {
-			log.Fatal("Failed to ping database:", err)
-		}
-
 		log.Println("Database connection established")
-		carRepository = repositories.NewMySQLCarRepository(db)
 	}
 
-	// Initialize Gin router
 	r := gin.Default()
-
-	// CORS middleware
-	allowedOrigins := strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ",")
-	allowCredentials := true
-	if len(allowedOrigins) == 1 && allowedOrigins[0] == "" {
-		allowedOrigins = []string{"*"}
-		allowCredentials = false
-	}
-
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     allowedOrigins,
+		AllowOrigins:     allowedOrigins(),
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		AllowCredentials: allowCredentials,
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Admin-Setup-Token"},
+		AllowCredentials: allowCredentials(),
 	}))
 
-	// Dependencies
-	//carRepository := repositories.NewMockCarRepository()
+	api := r.Group("/api")
+	registerDatabaseRoutes(api, db, cfg)
+	registerAIRoutes(api, db, cfg)
+
+	r.GET("/health", handlers.HealthHandler)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("Server starting on port %s", port)
+	if err := r.Run(":" + port); err != nil {
+		log.Fatal("Failed to start server:", err)
+	}
+}
+
+func openDatabase(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(3 * time.Minute)
+	db.SetConnMaxIdleTime(1 * time.Minute)
+
+	if err := db.Ping(); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func registerDatabaseRoutes(api *gin.RouterGroup, db *sql.DB, cfg *config.Config) {
+	if db == nil {
+		log.Println("Database-backed auth and car routes are disabled")
+		return
+	}
+
+	tokenManager := auth.NewTokenManager(cfg.JWTSecret, cfg.JWTTokenTTL)
+	carRepository := repository.NewCarRepository(db)
+	userRepository := repository.NewUserRepository(db)
+
+	handlers.RegisterAuthRoutes(api.Group("/auth"), userRepository, tokenManager, cfg.AdminSetupToken)
+	handlers.RegisterCarRoutes(api, carRepository)
+
+	adminAPI := api.Group("/admin")
+	adminAPI.Use(handlers.RequireAdmin(tokenManager))
+	handlers.RegisterAdminCarRoutes(adminAPI, carRepository)
+}
+
+func registerAIRoutes(api *gin.RouterGroup, db *sql.DB, cfg *config.Config) {
+	var carRepository airepositories.CarRepository
+	if cfg.UseMockCars || db == nil {
+		log.Println("Using mock car repository for AI recommendations")
+		carRepository = airepositories.NewMockCarRepository()
+	} else {
+		log.Println("Using TiDB/MySQL car repository for AI recommendations")
+		carRepository = airepositories.NewMySQLCarRepository(db)
+	}
+
 	carRecommendationService := aiservice.NewCarRecommendationService(
 		cfg.GeminiAPIKey,
 		cfg.GeminiModel,
@@ -109,23 +119,19 @@ func main() {
 	)
 	aiHandler := handlers.NewAIHandler(carRecommendationService)
 
-	// Routes
-	r.GET("/health", handlers.HealthHandler)
+	api.POST("/ai/car-recommendation", aiHandler.RecommendCar)
+}
 
-	api := r.Group("/api")
-	{
-		api.POST("/ai/car-recommendation", aiHandler.RecommendCar)
+func allowedOrigins() []string {
+	origins := strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ",")
+	if len(origins) == 1 && origins[0] == "" {
+		return []string{"*"}
 	}
 
-	// Get port from environment or default
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	return origins
+}
 
-	// Start server
-	log.Printf("Server starting on port %s", port)
-	if err := r.Run(":" + port); err != nil {
-		log.Fatal("Failed to start server:", err)
-	}
+func allowCredentials() bool {
+	origins := strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ",")
+	return !(len(origins) == 1 && origins[0] == "")
 }

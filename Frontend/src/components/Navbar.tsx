@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { PageKey, PageLink } from '../types/site';
 
 interface NavbarProps {
@@ -8,9 +9,10 @@ interface NavbarProps {
   isMenuOpen: boolean;
   onToggleMenu: () => void;
   onNavigate: (page: PageKey) => void;
+  actions?: ReactNode;
 }
 
-const Navbar = ({ pages, activePage, isMenuOpen, onToggleMenu, onNavigate }: NavbarProps) => (
+const Navbar = ({ pages, activePage, isMenuOpen, onToggleMenu, onNavigate, actions }: NavbarProps) => (
   <nav className="fixed top-0 w-full bg-black/80 backdrop-blur-md z-50 border-b border-cyan-500/20" aria-label="Primary">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center h-16">
@@ -34,16 +36,19 @@ const Navbar = ({ pages, activePage, isMenuOpen, onToggleMenu, onNavigate }: Nav
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className="md:hidden text-cyan-400"
-          onClick={onToggleMenu}
-          aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-          aria-expanded={isMenuOpen}
-          aria-controls="mobile-navigation"
-        >
-          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-3">
+          {actions}
+          <button
+            type="button"
+            className="md:hidden text-cyan-400"
+            onClick={onToggleMenu}
+            aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isMenuOpen}
+            aria-controls="mobile-navigation"
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
       {isMenuOpen && (
         <motion.div

@@ -22,7 +22,7 @@ func TestMockCarRepositoryFindAvailableCarsBySeatsAndBudget(t *testing.T) {
 		t.Fatalf("expected 4 cars, got %d", len(cars))
 	}
 
-	expectedIDs := []int{3, 2, 1, 5}
+	expectedIDs := []int64{3, 2, 1, 5}
 	for index, expectedID := range expectedIDs {
 		if cars[index].ID != expectedID {
 			t.Fatalf("expected car id %d at index %d, got %d", expectedID, index, cars[index].ID)

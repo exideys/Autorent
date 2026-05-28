@@ -173,7 +173,7 @@ export function AiCarAssistant() {
 
                     <div className="rounded-xl bg-white/[0.04] px-3 py-2">
                       <span className="block text-slate-500">Power</span>
-                      {car.horsepower} hp
+                      {car.horsepower ? `${car.horsepower} hp` : "Not specified"}
                     </div>
 
                     <div className="rounded-xl bg-white/[0.04] px-3 py-2">

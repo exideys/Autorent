@@ -1,0 +1,531 @@
+import { Edit3, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { ApiError, createAdminCar, deleteAdminCar, listAdminCars, updateAdminCar } from '../lib/api';
+import type { Car, CarInput } from '../types/api';
+
+interface AdminDashboardProps {
+  token: string;
+  onInventoryChanged: () => void;
+  onUnauthorized: () => void;
+}
+
+interface CarFormState {
+  brand: string;
+  model: string;
+  year: string;
+  carClass: string;
+  bodyType: string;
+  transmission: string;
+  fuelType: string;
+  seats: string;
+  doors: string;
+  engineVolume: string;
+  horsepower: string;
+  pricePerDay: string;
+  deposit: string;
+  color: string;
+  status: string;
+  imageUrls: string;
+}
+
+const emptyForm: CarFormState = {
+  brand: '',
+  model: '',
+  year: new Date().getFullYear().toString(),
+  carClass: '',
+  bodyType: '',
+  transmission: 'Automatic',
+  fuelType: 'Petrol',
+  seats: '5',
+  doors: '4',
+  engineVolume: '',
+  horsepower: '',
+  pricePerDay: '',
+  deposit: '',
+  color: '',
+  status: 'available',
+  imageUrls: '',
+};
+
+const statusOptions = ['available', 'rented', 'maintenance', 'unavailable'];
+
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+});
+
+const inputClass =
+  'w-full bg-black/60 border border-cyan-500/25 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-cyan-400 focus:outline-none transition-colors';
+
+const labelClass = 'block space-y-2 text-sm text-gray-300';
+
+const fallbackImageUrl = `${import.meta.env.BASE_URL}hero-main.png`;
+
+const mainImage = (car: Car) => {
+  const selectedImage = car.images.find((image) => image.is_main) || car.images[0];
+  return selectedImage?.image_url || fallbackImageUrl;
+};
+
+const optionalNumber = (value: string) => {
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : Number(trimmed);
+};
+
+const imageInputs = (value: string) =>
+  value
+    .split(/\r?\n/)
+    .map((url) => url.trim())
+    .filter(Boolean)
+    .map((imageUrl, index) => ({
+      image_url: imageUrl,
+      is_main: index === 0,
+      sort_order: index,
+    }));
+
+const toCarInput = (form: CarFormState): CarInput => ({
+  brand: form.brand.trim(),
+  model: form.model.trim(),
+  year: Number(form.year),
+  car_class: form.carClass.trim(),
+  body_type: form.bodyType.trim(),
+  transmission: form.transmission.trim(),
+  fuel_type: form.fuelType.trim(),
+  seats: Number(form.seats),
+  doors: Number(form.doors),
+  engine_volume: optionalNumber(form.engineVolume),
+  horsepower: optionalNumber(form.horsepower),
+  price_per_day: Number(form.pricePerDay),
+  deposit: Number(form.deposit),
+  color: form.color.trim() || undefined,
+  status: form.status.trim() || 'available',
+  images: imageInputs(form.imageUrls),
+});
+
+const formFromCar = (car: Car): CarFormState => ({
+  brand: car.brand,
+  model: car.model,
+  year: car.year.toString(),
+  carClass: car.car_class,
+  bodyType: car.body_type,
+  transmission: car.transmission,
+  fuelType: car.fuel_type,
+  seats: car.seats.toString(),
+  doors: car.doors.toString(),
+  engineVolume: car.engine_volume?.toString() || '',
+  horsepower: car.horsepower?.toString() || '',
+  pricePerDay: car.price_per_day.toString(),
+  deposit: car.deposit.toString(),
+  color: car.color || '',
+  status: car.status || 'available',
+  imageUrls: car.images.map((image) => image.image_url).join('\n'),
+});
+
+const AdminDashboard = ({ token, onInventoryChanged, onUnauthorized }: AdminDashboardProps) => {
+  const [cars, setCars] = useState<Car[]>([]);
+  const [form, setForm] = useState<CarFormState>(emptyForm);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+
+  const loadCars = useCallback(async () => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const loadedCars = await listAdminCars(token);
+      setCars(loadedCars);
+    } catch (loadError) {
+      const nextMessage = loadError instanceof Error ? loadError.message : 'Unable to load admin inventory';
+      setError(nextMessage);
+      if (loadError instanceof ApiError && loadError.status === 401) {
+        onUnauthorized();
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [onUnauthorized, token]);
+
+  useEffect(() => {
+    loadCars();
+  }, [loadCars]);
+
+  const stats = useMemo(() => {
+    const available = cars.filter((car) => car.status === 'available').length;
+    const averagePrice =
+      cars.length === 0 ? 0 : cars.reduce((total, car) => total + car.price_per_day, 0) / cars.length;
+    const statuses = cars.reduce<Record<string, number>>((acc, car) => {
+      acc[car.status] = (acc[car.status] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      total: cars.length,
+      available,
+      averagePrice,
+      statuses,
+    };
+  }, [cars]);
+
+  const updateField =
+    (field: keyof CarFormState) =>
+    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      setForm((current) => ({
+        ...current,
+        [field]: event.target.value,
+      }));
+    };
+
+  const resetForm = () => {
+    setForm(emptyForm);
+    setEditingId(null);
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSaving(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const payload = toCarInput(form);
+      if (editingId) {
+        await updateAdminCar(token, editingId, payload);
+        setMessage('Vehicle updated.');
+      } else {
+        await createAdminCar(token, payload);
+        setMessage('Vehicle created.');
+      }
+
+      resetForm();
+      await loadCars();
+      onInventoryChanged();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Unable to save vehicle');
+      if (saveError instanceof ApiError && saveError.status === 401) {
+        onUnauthorized();
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = (car: Car) => {
+    setForm(formFromCar(car));
+    setEditingId(car.id);
+    setError('');
+    setMessage('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (car: Car) => {
+    const shouldDelete = window.confirm(`Delete ${car.brand} ${car.model}?`);
+    if (!shouldDelete) {
+      return;
+    }
+
+    setError('');
+    setMessage('');
+
+    try {
+      await deleteAdminCar(token, car.id);
+      setMessage('Vehicle deleted.');
+      await loadCars();
+      onInventoryChanged();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Unable to delete vehicle');
+      if (deleteError instanceof ApiError && deleteError.status === 401) {
+        onUnauthorized();
+      }
+    }
+  };
+
+  return (
+    <main className="pt-24 pb-16 px-4">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-300">Admin</p>
+            <h1 className="mt-2 text-4xl font-bold text-white">Fleet Dashboard</h1>
+            <p className="mt-3 max-w-2xl text-gray-300">
+              Manage the live vehicle inventory served from the existing AutoRent backend.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={loadCars}
+            disabled={isLoading}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+          >
+            <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-cyan-500/20 bg-white/10 p-5">
+            <p className="text-sm text-gray-400">Total Vehicles</p>
+            <p className="mt-2 text-3xl font-bold text-white">{stats.total}</p>
+          </div>
+          <div className="rounded-xl border border-cyan-500/20 bg-white/10 p-5">
+            <p className="text-sm text-gray-400">Available</p>
+            <p className="mt-2 text-3xl font-bold text-cyan-300">{stats.available}</p>
+          </div>
+          <div className="rounded-xl border border-cyan-500/20 bg-white/10 p-5">
+            <p className="text-sm text-gray-400">Average Daily Price</p>
+            <p className="mt-2 text-3xl font-bold text-white">{currencyFormatter.format(stats.averagePrice)}</p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-cyan-500/20 bg-black/30 p-5">
+          <p className="mb-3 text-sm font-semibold text-gray-300">Status Breakdown</p>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(stats.statuses).length === 0 ? (
+              <span className="text-sm text-gray-500">No vehicles yet.</span>
+            ) : (
+              Object.entries(stats.statuses).map(([status, count]) => (
+                <span
+                  key={status}
+                  className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-sm capitalize text-cyan-100"
+                >
+                  {status}: {count}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+
+        {(error || message) && (
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm ${
+              error ? 'border-red-400/30 bg-red-500/10 text-red-100' : 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100'
+            }`}
+            role={error ? 'alert' : 'status'}
+          >
+            {error || message}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
+          <form onSubmit={handleSubmit} className="rounded-xl border border-cyan-500/20 bg-white/10 p-6">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold text-white">{editingId ? 'Edit Vehicle' : 'Add Vehicle'}</h2>
+                <p className="mt-1 text-sm text-gray-400">All required fields map directly to the backend car payload.</p>
+              </div>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-500/20 text-cyan-100 hover:bg-cyan-500/10 transition-colors"
+                  aria-label="Cancel editing"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label className={labelClass}>
+                <span>Brand</span>
+                <input value={form.brand} onChange={updateField('brand')} className={inputClass} required maxLength={50} />
+              </label>
+              <label className={labelClass}>
+                <span>Model</span>
+                <input value={form.model} onChange={updateField('model')} className={inputClass} required maxLength={50} />
+              </label>
+              <label className={labelClass}>
+                <span>Year</span>
+                <input type="number" value={form.year} onChange={updateField('year')} className={inputClass} required min={1900} />
+              </label>
+              <label className={labelClass}>
+                <span>Car Class</span>
+                <input value={form.carClass} onChange={updateField('carClass')} className={inputClass} required maxLength={50} />
+              </label>
+              <label className={labelClass}>
+                <span>Body Type</span>
+                <input value={form.bodyType} onChange={updateField('bodyType')} className={inputClass} required maxLength={50} />
+              </label>
+              <label className={labelClass}>
+                <span>Transmission</span>
+                <input
+                  value={form.transmission}
+                  onChange={updateField('transmission')}
+                  className={inputClass}
+                  required
+                  maxLength={30}
+                />
+              </label>
+              <label className={labelClass}>
+                <span>Fuel Type</span>
+                <input value={form.fuelType} onChange={updateField('fuelType')} className={inputClass} required maxLength={30} />
+              </label>
+              <label className={labelClass}>
+                <span>Status</span>
+                <select value={form.status} onChange={updateField('status')} className={inputClass}>
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status} className="bg-gray-950">
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={labelClass}>
+                <span>Seats</span>
+                <input type="number" value={form.seats} onChange={updateField('seats')} className={inputClass} required min={1} />
+              </label>
+              <label className={labelClass}>
+                <span>Doors</span>
+                <input type="number" value={form.doors} onChange={updateField('doors')} className={inputClass} required min={1} />
+              </label>
+              <label className={labelClass}>
+                <span>Engine Volume</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={form.engineVolume}
+                  onChange={updateField('engineVolume')}
+                  className={inputClass}
+                  placeholder="Optional"
+                />
+              </label>
+              <label className={labelClass}>
+                <span>Horsepower</span>
+                <input
+                  type="number"
+                  value={form.horsepower}
+                  onChange={updateField('horsepower')}
+                  className={inputClass}
+                  placeholder="Optional"
+                />
+              </label>
+              <label className={labelClass}>
+                <span>Price Per Day</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.pricePerDay}
+                  onChange={updateField('pricePerDay')}
+                  className={inputClass}
+                  required
+                  min={0}
+                />
+              </label>
+              <label className={labelClass}>
+                <span>Deposit</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.deposit}
+                  onChange={updateField('deposit')}
+                  className={inputClass}
+                  required
+                  min={0}
+                />
+              </label>
+              <label className={`${labelClass} md:col-span-2`}>
+                <span>Color</span>
+                <input value={form.color} onChange={updateField('color')} className={inputClass} maxLength={30} placeholder="Optional" />
+              </label>
+              <label className={`${labelClass} md:col-span-2`}>
+                <span>Image URLs</span>
+                <textarea
+                  value={form.imageUrls}
+                  onChange={updateField('imageUrls')}
+                  className={`${inputClass} min-h-28 resize-y`}
+                  placeholder="One URL per line. The first URL becomes the main image."
+                />
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-3 text-sm font-semibold text-black hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+            >
+              {editingId ? <Save size={17} /> : <Plus size={17} />}
+              {isSaving ? 'Saving...' : editingId ? 'Save Changes' : 'Create Vehicle'}
+            </button>
+          </form>
+
+          <section className="rounded-xl border border-cyan-500/20 bg-white/10 p-6">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold text-white">Inventory</h2>
+                <p className="mt-1 text-sm text-gray-400">Create, edit, and delete cars from the admin API.</p>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="space-y-3" aria-label="Loading admin cars">
+                {[0, 1, 2].map((item) => (
+                  <div key={item} className="h-24 animate-pulse rounded-xl bg-black/40" />
+                ))}
+              </div>
+            ) : cars.length === 0 ? (
+              <div className="rounded-xl border border-cyan-500/10 bg-black/40 py-12 text-center">
+                <p className="text-lg font-semibold text-white">No cars in inventory.</p>
+                <p className="mt-2 text-sm text-gray-400">Use the form to add the first vehicle.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {cars.map((car) => (
+                  <article key={car.id} className="grid gap-4 rounded-xl border border-cyan-500/10 bg-black/35 p-4 lg:grid-cols-[8rem_1fr_auto]">
+                    <img
+                      src={mainImage(car)}
+                      alt={`${car.brand} ${car.model}`}
+                      className="h-32 w-full rounded-lg object-cover lg:h-24 lg:w-32"
+                      onError={(event) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src = fallbackImageUrl;
+                      }}
+                    />
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-semibold text-white">
+                          {car.brand} {car.model}
+                        </h3>
+                        <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-xs text-cyan-100 capitalize">
+                          {car.status}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-gray-300">
+                        {car.year} · {car.car_class} · {car.body_type} · {car.transmission} · {car.fuel_type}
+                      </p>
+                      <p className="mt-1 text-sm text-gray-400">
+                        {car.seats} seats · {car.doors} doors · Deposit {currencyFormatter.format(car.deposit)}
+                      </p>
+                      <p className="mt-2 font-semibold text-cyan-300">{currencyFormatter.format(car.price_per_day)} / day</p>
+                    </div>
+                    <div className="flex items-center gap-2 lg:flex-col lg:items-stretch">
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(car)}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-500/10 transition-colors"
+                      >
+                        <Edit3 size={16} />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(car)}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-400/30 px-3 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/10 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                        Delete
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    </main>
+  );
+};
+
+export default AdminDashboard;

@@ -9,11 +9,11 @@ export type Car = {
   fuel_type: string;
   seats: number;
   doors: number;
-  engine_volume: number | null;
-  horsepower: number;
+  engine_volume?: number | null;
+  horsepower?: number;
   price_per_day: number;
   deposit: number;
-  color: string;
+  color?: string;
   status: string;
 };
 
@@ -27,7 +27,7 @@ type ApiErrorResponse = {
   error?: string;
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 
 export async function recommendCar(message: string): Promise<CarRecommendationResponse> {
   const trimmedMessage = message.trim();
@@ -36,7 +36,7 @@ export async function recommendCar(message: string): Promise<CarRecommendationRe
     throw new Error("Please enter your car rental request.");
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/ai/car-recommendation`, {
+  const response = await fetch(`${API_BASE_URL}/ai/car-recommendation`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

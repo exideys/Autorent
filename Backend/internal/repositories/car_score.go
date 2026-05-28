@@ -130,7 +130,7 @@ func sortCarsByFilters(cars []models.Car, filters models.CarSearchFilters) {
 		case "year_desc":
 			return cars[i].Year > cars[j].Year
 		case "horsepower_desc":
-			return cars[i].Horsepower > cars[j].Horsepower
+			return horsepowerValue(cars[i]) > horsepowerValue(cars[j])
 		case "seats_desc":
 			return cars[i].Seats > cars[j].Seats
 		default:
@@ -144,4 +144,12 @@ func sortCarsByFilters(cars []models.Car, filters models.CarSearchFilters) {
 			return scoreI > scoreJ
 		}
 	})
+}
+
+func horsepowerValue(car models.Car) int {
+	if car.Horsepower == nil {
+		return 0
+	}
+
+	return *car.Horsepower
 }

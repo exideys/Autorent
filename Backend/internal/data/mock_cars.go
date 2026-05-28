@@ -6,6 +6,14 @@ func float64Ptr(value float64) *float64 {
 	return &value
 }
 
+func intPtr(value int) *int {
+	return &value
+}
+
+func stringPtr(value string) *string {
+	return &value
+}
+
 func MockCars() []models.Car {
 	return []models.Car{
 		{
@@ -20,10 +28,10 @@ func MockCars() []models.Car {
 			Seats:        5,
 			Doors:        4,
 			EngineVolume: float64Ptr(3.0),
-			Horsepower:   429,
+			Horsepower:   intPtr(429),
 			PricePerDay:  220.00,
 			Deposit:      1000.00,
-			Color:        "Black",
+			Color:        stringPtr("Black"),
 			Status:       "available",
 		},
 		{
@@ -38,10 +46,10 @@ func MockCars() []models.Car {
 			Seats:        5,
 			Doors:        4,
 			EngineVolume: float64Ptr(3.0),
-			Horsepower:   375,
+			Horsepower:   intPtr(375),
 			PricePerDay:  210.00,
 			Deposit:      950.00,
-			Color:        "White",
+			Color:        stringPtr("White"),
 			Status:       "available",
 		},
 		{
@@ -56,10 +64,10 @@ func MockCars() []models.Car {
 			Seats:        5,
 			Doors:        4,
 			EngineVolume: float64Ptr(3.0),
-			Horsepower:   286,
+			Horsepower:   intPtr(286),
 			PricePerDay:  190.00,
 			Deposit:      900.00,
-			Color:        "Gray",
+			Color:        stringPtr("Gray"),
 			Status:       "available",
 		},
 		{
@@ -74,10 +82,10 @@ func MockCars() []models.Car {
 			Seats:        5,
 			Doors:        5,
 			EngineVolume: float64Ptr(3.0),
-			Horsepower:   348,
+			Horsepower:   intPtr(348),
 			PricePerDay:  250.00,
 			Deposit:      1200.00,
-			Color:        "Dark Blue",
+			Color:        stringPtr("Dark Blue"),
 			Status:       "available",
 		},
 		{
@@ -92,10 +100,10 @@ func MockCars() []models.Car {
 			Seats:        5,
 			Doors:        5,
 			EngineVolume: nil,
-			Horsepower:   670,
+			Horsepower:   intPtr(670),
 			PricePerDay:  230.00,
 			Deposit:      1000.00,
-			Color:        "Red",
+			Color:        stringPtr("Red"),
 			Status:       "available",
 		},
 	}
