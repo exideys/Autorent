@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
 import type { PageContent } from '../types/site';
 
+const heroImageUrl = `${import.meta.env.BASE_URL}hero-main.png`;
+
 interface HeroSectionProps {
   content: PageContent;
   buttonText: string;
@@ -14,7 +16,7 @@ const HeroSection = ({ content, buttonText, onButtonClick, isHome }: HeroSection
       {isHome ? (
         <>
           <motion.img
-            src="/hero-main.png"
+            src={heroImageUrl}
             alt="AutoRent luxury showroom"
             initial={{ scale: 1 }}
             animate={{ scale: 1.12 }}

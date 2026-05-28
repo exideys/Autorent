@@ -51,9 +51,11 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 const fieldClass =
   'h-11 w-full rounded-lg border border-cyan-500/25 bg-black/60 px-3 text-sm text-white placeholder-gray-500 focus:border-cyan-300 focus:outline-none transition-colors';
 
+const fallbackImageUrl = `${import.meta.env.BASE_URL}hero-main.png`;
+
 const mainImage = (car: Car) => {
   const selectedImage = car.images.find((image) => image.is_main) || car.images[0];
-  return selectedImage?.image_url || '/hero-main.png';
+  return selectedImage?.image_url || fallbackImageUrl;
 };
 
 const uniqueValues = (cars: Car[], selector: (car: Car) => string) =>
@@ -337,7 +339,7 @@ const ShowroomSection = ({ cars, isLoading, error, onRetry }: ShowroomSectionPro
                         className="h-full w-full object-cover"
                         onError={(event) => {
                           event.currentTarget.onerror = null;
-                          event.currentTarget.src = '/hero-main.png';
+                          event.currentTarget.src = fallbackImageUrl;
                         }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
@@ -420,7 +422,7 @@ const ShowroomSection = ({ cars, isLoading, error, onRetry }: ShowroomSectionPro
                   className="h-72 w-full rounded-xl object-cover"
                   onError={(event) => {
                     event.currentTarget.onerror = null;
-                    event.currentTarget.src = '/hero-main.png';
+                    event.currentTarget.src = fallbackImageUrl;
                   }}
                 />
                 {selectedCar.images.length > 1 && (
