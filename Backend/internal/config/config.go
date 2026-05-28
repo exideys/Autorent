@@ -16,6 +16,8 @@ type Config struct {
 	JWTSecret       string
 	JWTTokenTTL     time.Duration
 	AdminSetupToken string
+	GeminiAPIKey    string
+	GeminiModel     string
 }
 
 var (
@@ -33,6 +35,8 @@ func Load() (*Config, error) {
 	jwtSecret := getEnv("JWT_SECRET", "change-me-in-production")
 	jwtTTL := getEnvDuration("JWT_TOKEN_TTL", 24*time.Hour)
 	adminSetupToken := getEnv("ADMIN_SETUP_TOKEN", "")
+	geminiAPIKey := getEnv("GEMINI_API_KEY", "")
+	geminiModel := getEnv("GEMINI_MODEL", "gemini-2.5-flash")
 
 	tlsConfigName, err := resolveTLSConfig(dbTLS, dbHost)
 	if err != nil {
@@ -59,6 +63,8 @@ func Load() (*Config, error) {
 		JWTSecret:       jwtSecret,
 		JWTTokenTTL:     jwtTTL,
 		AdminSetupToken: adminSetupToken,
+		GeminiAPIKey:    geminiAPIKey,
+		GeminiModel:     geminiModel,
 	}, nil
 }
 

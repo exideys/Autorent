@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AdminDashboard from './components/AdminDashboard';
+import AICarAssistant from './components/AICarAssistant';
 import AuthMenu from './components/AuthMenu';
 import ContactSection from './components/ContactSection';
 import CtaSection from './components/CtaSection';
@@ -190,6 +191,8 @@ const App = () => {
 
           <div className={isHome ? '' : 'pt-24'}>
             {(isHome || activePage === 'services') && <ServicesSection items={services} />}
+
+            {(isHome || activePage === 'showroom') && <AICarAssistant />}
 
             {(isHome || activePage === 'showroom') && (
               <ShowroomSection cars={cars} isLoading={isCarsLoading} error={carsError} onRetry={loadCars} />
