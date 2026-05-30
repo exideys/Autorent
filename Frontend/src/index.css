@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
   color-scheme: dark;
@@ -25,4 +23,3 @@ body {
 #root {
   min-height: 100vh;
 }
-

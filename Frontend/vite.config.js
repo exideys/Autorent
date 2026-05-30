@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
 const normalizeBase = (value) => {
@@ -18,7 +19,7 @@ const base = normalizeBase(process.env.VITE_BASE_PATH || (process.env.GITHUB_PAG
 // https://vite.dev/config/
 export default defineConfig({
   base,
-  plugins: [react()],
+  plugins: [tailwindcss(), react()],
   server: {
     proxy: {
       '/api': 'http://localhost:8080',
