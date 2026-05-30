@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -46,10 +47,12 @@ func (h *AIHandler) RecommendCars(c *gin.Context) {
 	filters, err := h.extractor.ExtractCarFilters(c.Request.Context(), strings.TrimSpace(input.Message))
 	if err != nil {
 		if errors.Is(err, ai.ErrUnavailable) {
+			log.Printf("AI extract failed: %v", err)
 			respondError(c, http.StatusServiceUnavailable, "AI car assistant is temporarily unavailable. Please try again later.")
 			return
 		}
 
+		log.Printf("AI extract unexpected error: %v", err)
 		respondError(c, http.StatusInternalServerError, "failed to extract car filters")
 		return
 	}
