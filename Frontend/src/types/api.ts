@@ -8,10 +8,16 @@ export interface ApiErrorResponse {
 
 export interface User {
   id: number;
+  first_name: string;
+  last_name: string;
   name: string;
   email: string;
+  rating: number;
+  rating_count: number;
   role: 'user' | 'admin' | string;
+  status: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface AuthResponse {
@@ -29,6 +35,10 @@ export interface RegisterPayload {
 export interface LoginPayload {
   email: string;
   password: string;
+}
+
+export interface RateUserPayload {
+  rating: number;
 }
 
 export interface CarImage {

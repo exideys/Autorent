@@ -11,11 +11,17 @@ const (
 )
 
 type User struct {
-	ID        int64     `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
+	ID          int64     `json:"id"`
+	FirstName   string    `json:"first_name"`
+	LastName    string    `json:"last_name"`
+	Name        string    `json:"name"`
+	Email       string    `json:"email"`
+	Rating      float64   `json:"rating"`
+	RatingCount int       `json:"rating_count"`
+	Role        string    `json:"role"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type UserWithPassword struct {
@@ -34,6 +40,10 @@ type RegisterInput struct {
 type LoginInput struct {
 	Email    string `json:"email" binding:"required,email,max=100"`
 	Password string `json:"password" binding:"required"`
+}
+
+type RateUserInput struct {
+	Rating float64 `json:"rating" binding:"required,gte=1,lte=5"`
 }
 
 type AuthResponse struct {

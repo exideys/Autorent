@@ -44,6 +44,10 @@ export const pageContent: Record<PageKey, PageContent> = {
     title: 'Contact AutoRent',
     subtitle: 'Get in touch with our team for quick support and premium booking assistance.',
   },
+  profile: {
+    title: 'Your Profile',
+    subtitle: 'Manage your AutoRent account and jump back into your rental experience.',
+  },
   admin: {
     title: 'Admin Dashboard',
     subtitle: 'Manage live inventory and monitor fleet status.',

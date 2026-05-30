@@ -75,6 +75,7 @@ func main() {
 	adminAPI := api.Group("/admin")
 	adminAPI.Use(handlers.RequireAdmin(tokenManager))
 	handlers.RegisterAdminCarRoutes(adminAPI, carRepository)
+	handlers.RegisterAdminUserRoutes(adminAPI, userRepository)
 
 	// Get port from environment or default
 	port := os.Getenv("PORT")

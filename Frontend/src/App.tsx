@@ -8,6 +8,8 @@ import Footer from './components/Footer';
 import HeroSection from './components/HeroSection';
 import HowItWorksSection from './components/HowItWorksSection';
 import Navbar from './components/Navbar';
+import PopularCarsSection from './components/PopularCarsSection';
+import ProfilePage from './components/ProfilePage';
 import ServicesSection from './components/ServicesSection';
 import ShowroomSection from './components/ShowroomSection';
 import WhyChooseUsSection from './components/WhyChooseUsSection';
@@ -68,6 +70,7 @@ const App = () => {
 
   const user = auth?.user ?? null;
   const isAdminPage = activePage === 'admin';
+  const isProfilePage = activePage === 'profile';
   const isHome = activePage === 'home';
 
   const navPages = useMemo(
@@ -137,7 +140,10 @@ const App = () => {
     if (activePage === 'admin' && user?.role !== 'admin') {
       setActivePage('home');
     }
-  }, [activePage, user?.role]);
+    if (activePage === 'profile' && !user && !isSessionLoading) {
+      setActivePage('home');
+    }
+  }, [activePage, isSessionLoading, user, user?.role]);
 
   const handleNavigate = (page: PageKey) => {
     setActivePage(page);
@@ -152,7 +158,7 @@ const App = () => {
   const handleLogout = () => {
     clearStoredAuth();
     setAuth(null);
-    if (activePage === 'admin') {
+    if (activePage === 'admin' || activePage === 'profile') {
       setActivePage('home');
     }
   };
@@ -172,12 +178,20 @@ const App = () => {
             onAuthenticated={handleAuthenticated}
             onLogout={handleLogout}
             onAdminClick={() => handleNavigate('admin')}
+            onProfileClick={() => handleNavigate('profile')}
           />
         }
       />
 
       {isAdminPage && auth?.token && user?.role === 'admin' ? (
         <AdminDashboard token={auth.token} onInventoryChanged={loadCars} onUnauthorized={handleLogout} />
+      ) : isProfilePage && user ? (
+        <ProfilePage
+          user={user}
+          onAdminClick={() => handleNavigate('admin')}
+          onLogout={handleLogout}
+          onShowroomClick={() => handleNavigate('showroom')}
+        />
       ) : (
         <>
           {isHome && (
@@ -192,9 +206,20 @@ const App = () => {
           <div className={isHome ? '' : 'pt-24'}>
             {(isHome || activePage === 'services') && <ServicesSection items={services} />}
 
-            {(isHome || activePage === 'showroom') && <AICarAssistant />}
+            {isHome && <AICarAssistant />}
 
-            {(isHome || activePage === 'showroom') && (
+            {isHome && (
+              <PopularCarsSection
+                cars={cars}
+                isLoading={isCarsLoading}
+                error={carsError}
+                onExploreShowroom={() => handleNavigate('showroom')}
+              />
+            )}
+
+            {activePage === 'showroom' && <AICarAssistant />}
+
+            {activePage === 'showroom' && (
               <ShowroomSection cars={cars} isLoading={isCarsLoading} error={carsError} onRetry={loadCars} />
             )}
 

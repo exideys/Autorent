@@ -6,6 +6,7 @@ import type {
   CarInput,
   CarRecommendationResponse,
   LoginPayload,
+  RateUserPayload,
   RegisterPayload,
   User,
 } from '../types/api';
@@ -106,6 +107,18 @@ export const getCurrentUser = (token: string) =>
 export const listAdminCars = (token: string) =>
   apiRequest<Car[]>('/admin/cars?sort=created_at&order=desc', {
     token,
+  });
+
+export const listAdminUsers = (token: string) =>
+  apiRequest<User[]>('/admin/users', {
+    token,
+  });
+
+export const rateAdminUser = (token: string, id: number, payload: RateUserPayload) =>
+  apiRequest<User>(`/admin/users/${id}/rating`, {
+    method: 'PATCH',
+    token,
+    body: payload,
   });
 
 export const createAdminCar = (token: string, payload: CarInput) =>

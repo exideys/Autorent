@@ -18,13 +18,25 @@ func TestUserRepositoryCreate(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
+	updatedAt := now.Add(time.Minute)
 	mock.ExpectExec("INSERT INTO users").
 		WithArgs("Test", "User", "user@example.com", "hashed-password", models.UserRoleUser).
 		WillReturnResult(sqlmock.NewResult(7, 1))
-	mock.ExpectQuery("SELECT id, TRIM").
+	mock.ExpectQuery("SELECT id, first_name").
 		WithArgs(int64(7)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "role", "created_at"}).
-			AddRow(7, "Test User", "user@example.com", models.UserRoleUser, now))
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id",
+			"first_name",
+			"last_name",
+			"name",
+			"email",
+			"rating",
+			"rating_count",
+			"role",
+			"status",
+			"created_at",
+			"updated_at",
+		}).AddRow(7, "Test", "User", "Test User", "user@example.com", 5.0, 0, models.UserRoleUser, "active", now, updatedAt))
 
 	repo := NewUserRepository(db)
 	user, err := repo.Create(context.Background(), models.RegisterInput{
@@ -36,7 +48,7 @@ func TestUserRepositoryCreate(t *testing.T) {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 
-	if user.ID != 7 || user.Email != "user@example.com" {
+	if user.ID != 7 || user.Email != "user@example.com" || user.FirstName != "Test" || user.Rating != 5.0 {
 		t.Fatalf("unexpected user: %+v", user)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -70,10 +82,23 @@ func TestUserRepositoryGetByEmail(t *testing.T) {
 	defer cleanup()
 
 	now := time.Now()
-	mock.ExpectQuery("SELECT id, TRIM").
+	updatedAt := now.Add(time.Minute)
+	mock.ExpectQuery("SELECT id, first_name").
 		WithArgs("user@example.com").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "password_hash", "role", "created_at"}).
-			AddRow(5, "Test User", "user@example.com", "hash", models.UserRoleAdmin, now))
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id",
+			"first_name",
+			"last_name",
+			"name",
+			"email",
+			"password_hash",
+			"rating",
+			"rating_count",
+			"role",
+			"status",
+			"created_at",
+			"updated_at",
+		}).AddRow(5, "Test", "User", "Test User", "user@example.com", "hash", 4.7, 3, models.UserRoleAdmin, "active", now, updatedAt))
 
 	repo := NewUserRepository(db)
 	user, err := repo.GetByEmail(context.Background(), " USER@EXAMPLE.COM ")
@@ -81,7 +106,7 @@ func TestUserRepositoryGetByEmail(t *testing.T) {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 
-	if user.ID != 5 || user.PasswordHash != "hash" || user.Role != models.UserRoleAdmin {
+	if user.ID != 5 || user.PasswordHash != "hash" || user.Role != models.UserRoleAdmin || user.RatingCount != 3 {
 		t.Fatalf("unexpected user: %+v", user)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -93,9 +118,22 @@ func TestUserRepositoryGetByEmailNotFound(t *testing.T) {
 	db, mock, cleanup := newMockDB(t)
 	defer cleanup()
 
-	mock.ExpectQuery("SELECT id, TRIM").
+	mock.ExpectQuery("SELECT id, first_name").
 		WithArgs("missing@example.com").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "password_hash", "role", "created_at"}))
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id",
+			"first_name",
+			"last_name",
+			"name",
+			"email",
+			"password_hash",
+			"rating",
+			"rating_count",
+			"role",
+			"status",
+			"created_at",
+			"updated_at",
+		}))
 
 	repo := NewUserRepository(db)
 	_, err := repo.GetByEmail(context.Background(), "missing@example.com")
@@ -111,14 +149,101 @@ func TestUserRepositoryGetByIDNotFound(t *testing.T) {
 	db, mock, cleanup := newMockDB(t)
 	defer cleanup()
 
-	mock.ExpectQuery("SELECT id, TRIM").
+	mock.ExpectQuery("SELECT id, first_name").
 		WithArgs(int64(99)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "role", "created_at"}))
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id",
+			"first_name",
+			"last_name",
+			"name",
+			"email",
+			"rating",
+			"rating_count",
+			"role",
+			"status",
+			"created_at",
+			"updated_at",
+		}))
 
 	repo := NewUserRepository(db)
 	_, err := repo.GetByID(context.Background(), 99)
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
+func TestUserRepositoryListCustomers(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+
+	now := time.Now()
+	updatedAt := now.Add(time.Minute)
+	mock.ExpectQuery("SELECT id, first_name").
+		WithArgs(models.UserRoleUser).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id",
+			"first_name",
+			"last_name",
+			"name",
+			"email",
+			"rating",
+			"rating_count",
+			"role",
+			"status",
+			"created_at",
+			"updated_at",
+		}).AddRow(8, "Client", "One", "Client One", "client@example.com", 4.5, 2, models.UserRoleUser, "active", now, updatedAt))
+
+	repo := NewUserRepository(db)
+	users, err := repo.ListCustomers(context.Background())
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if len(users) != 1 || users[0].ID != 8 || users[0].Rating != 4.5 {
+		t.Fatalf("unexpected users: %+v", users)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
+func TestUserRepositoryRateCustomer(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+
+	now := time.Now()
+	updatedAt := now.Add(time.Minute)
+	mock.ExpectExec("UPDATE users").
+		WithArgs(4.0, int64(8), models.UserRoleUser).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery("SELECT id, first_name").
+		WithArgs(int64(8)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id",
+			"first_name",
+			"last_name",
+			"name",
+			"email",
+			"rating",
+			"rating_count",
+			"role",
+			"status",
+			"created_at",
+			"updated_at",
+		}).AddRow(8, "Client", "One", "Client One", "client@example.com", 4.7, 3, models.UserRoleUser, "active", now, updatedAt))
+
+	repo := NewUserRepository(db)
+	user, err := repo.RateCustomer(context.Background(), 8, 4.0)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if user.ID != 8 || user.Rating != 4.7 || user.RatingCount != 3 {
+		t.Fatalf("unexpected user: %+v", user)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("unmet sql expectations: %v", err)
