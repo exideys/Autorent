@@ -5,6 +5,7 @@ export type PageKey =
   | 'how-it-works'
   | 'why-choose-us'
   | 'contact'
+  | 'profile'
   | 'admin';
 
 export type CarCategory = 'Luxury' | 'SUV' | 'Sport' | 'Business';

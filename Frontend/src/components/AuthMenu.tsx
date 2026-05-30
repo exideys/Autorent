@@ -1,4 +1,4 @@
-import { LogIn, LogOut, LayoutDashboard, UserCircle, UserPlus, X } from 'lucide-react';
+import { LogIn, LogOut, LayoutDashboard, UserCircle, UserPlus, UserRound, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { login, registerUser } from '../lib/api';
 import type { AuthResponse, User } from '../types/api';
@@ -11,6 +11,7 @@ interface AuthMenuProps {
   onAuthenticated: (auth: AuthResponse) => void;
   onLogout: () => void;
   onAdminClick: () => void;
+  onProfileClick: () => void;
 }
 
 const inputClass =
@@ -21,7 +22,7 @@ const tabClass = (active: boolean) =>
     active ? 'bg-cyan-500 text-black' : 'text-gray-300 hover:bg-white/10'
   }`;
 
-const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminClick }: AuthMenuProps) => {
+const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminClick, onProfileClick }: AuthMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<AuthMode>('login');
   const [firstName, setFirstName] = useState('');
@@ -116,6 +117,18 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
                   {user.role}
                 </span>
               </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onProfileClick();
+                  setIsOpen(false);
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-500/10 transition-colors"
+              >
+                <UserRound size={16} />
+                View Profile
+              </button>
 
               {user.role === 'admin' && (
                 <button

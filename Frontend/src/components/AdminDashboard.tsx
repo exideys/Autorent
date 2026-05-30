@@ -1,7 +1,7 @@
-import { Edit3, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
+import { Edit3, Plus, RefreshCw, Save, Star, Trash2, Users, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
-import { ApiError, createAdminCar, deleteAdminCar, listAdminCars, updateAdminCar } from '../lib/api';
-import type { Car, CarInput } from '../types/api';
+import { ApiError, createAdminCar, deleteAdminCar, listAdminCars, listAdminUsers, rateAdminUser, updateAdminCar } from '../lib/api';
+import type { Car, CarInput, User } from '../types/api';
 
 interface AdminDashboardProps {
   token: string;
@@ -48,11 +48,18 @@ const emptyForm: CarFormState = {
 };
 
 const statusOptions = ['available', 'rented', 'maintenance', 'unavailable'];
+const ratingOptions = ['1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5'];
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
   maximumFractionDigits: 0,
+});
+
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
 });
 
 const inputClass =
@@ -70,6 +77,11 @@ const mainImage = (car: Car) => {
 const optionalNumber = (value: string) => {
   const trimmed = value.trim();
   return trimmed === '' ? undefined : Number(trimmed);
+};
+
+const formatDate = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Not available' : dateFormatter.format(date);
 };
 
 const imageInputs = (value: string) =>
@@ -123,9 +135,12 @@ const formFromCar = (car: Car): CarFormState => ({
 
 const AdminDashboard = ({ token, onInventoryChanged, onUnauthorized }: AdminDashboardProps) => {
   const [cars, setCars] = useState<Car[]>([]);
+  const [customers, setCustomers] = useState<User[]>([]);
   const [form, setForm] = useState<CarFormState>(emptyForm);
+  const [ratingInputs, setRatingInputs] = useState<Record<number, string>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCustomersLoading, setIsCustomersLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -148,9 +163,40 @@ const AdminDashboard = ({ token, onInventoryChanged, onUnauthorized }: AdminDash
     }
   }, [onUnauthorized, token]);
 
+  const loadCustomers = useCallback(async () => {
+    setIsCustomersLoading(true);
+    setError('');
+
+    try {
+      const loadedCustomers = await listAdminUsers(token);
+      setCustomers(loadedCustomers);
+      setRatingInputs((current) => {
+        const nextInputs = { ...current };
+        loadedCustomers.forEach((customer) => {
+          nextInputs[customer.id] = nextInputs[customer.id] || '5';
+        });
+        return nextInputs;
+      });
+    } catch (loadError) {
+      const nextMessage = loadError instanceof Error ? loadError.message : 'Unable to load customers';
+      setError(nextMessage);
+      if (loadError instanceof ApiError && loadError.status === 401) {
+        onUnauthorized();
+      }
+    } finally {
+      setIsCustomersLoading(false);
+    }
+  }, [onUnauthorized, token]);
+
   useEffect(() => {
     loadCars();
-  }, [loadCars]);
+    loadCustomers();
+  }, [loadCars, loadCustomers]);
+
+  const handleRefresh = () => {
+    loadCars();
+    loadCustomers();
+  };
 
   const stats = useMemo(() => {
     const available = cars.filter((car) => car.status === 'available').length;
@@ -181,6 +227,41 @@ const AdminDashboard = ({ token, onInventoryChanged, onUnauthorized }: AdminDash
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+  };
+
+  const updateRatingInput =
+    (userID: number) =>
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      setRatingInputs((current) => ({
+        ...current,
+        [userID]: event.target.value,
+      }));
+    };
+
+  const handleRateCustomer = async (customer: User) => {
+    const rating = Number(ratingInputs[customer.id] || '');
+    setError('');
+    setMessage('');
+
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      setError('Customer rating must be between 1 and 5.');
+      return;
+    }
+
+    try {
+      const updatedCustomer = await rateAdminUser(token, customer.id, { rating });
+      setCustomers((current) => current.map((item) => (item.id === updatedCustomer.id ? updatedCustomer : item)));
+      setRatingInputs((current) => ({
+        ...current,
+        [customer.id]: '5',
+      }));
+      setMessage(`Rating added for ${updatedCustomer.name || updatedCustomer.email}.`);
+    } catch (rateError) {
+      setError(rateError instanceof Error ? rateError.message : 'Unable to rate customer');
+      if (rateError instanceof ApiError && rateError.status === 401) {
+        onUnauthorized();
+      }
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -255,11 +336,11 @@ const AdminDashboard = ({ token, onInventoryChanged, onUnauthorized }: AdminDash
           </div>
           <button
             type="button"
-            onClick={loadCars}
-            disabled={isLoading}
+            onClick={handleRefresh}
+            disabled={isLoading || isCustomersLoading}
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
           >
-            <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+            <RefreshCw size={16} className={isLoading || isCustomersLoading ? 'animate-spin' : ''} />
             Refresh
           </button>
         </div>
@@ -296,6 +377,86 @@ const AdminDashboard = ({ token, onInventoryChanged, onUnauthorized }: AdminDash
             )}
           </div>
         </div>
+
+        <section className="rounded-xl border border-cyan-500/20 bg-white/10 p-6">
+          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">Customers</p>
+              <h2 className="mt-1 text-2xl font-semibold text-white">Client ratings</h2>
+              <p className="mt-1 text-sm text-gray-400">Leave a rating for registered customers. New ratings update their average score.</p>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-sm text-cyan-100">
+              <Users size={16} />
+              {customers.length} client{customers.length === 1 ? '' : 's'}
+            </span>
+          </div>
+
+          {isCustomersLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Loading customers">
+              {[0, 1, 2].map((item) => (
+                <div key={item} className="h-40 animate-pulse rounded-xl bg-black/40" />
+              ))}
+            </div>
+          ) : customers.length === 0 ? (
+            <div className="rounded-xl border border-cyan-500/10 bg-black/35 px-4 py-8 text-center text-gray-300">
+              No registered clients yet.
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {customers.map((customer) => (
+                <article key={customer.id} className="rounded-xl border border-cyan-500/10 bg-black/35 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="break-words text-lg font-semibold text-white">{customer.name || customer.email}</h3>
+                      <p className="mt-1 break-words text-sm text-gray-400">{customer.email}</p>
+                    </div>
+                    <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-xs capitalize text-cyan-100">
+                      {customer.status || 'unknown'}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-lg border border-cyan-500/10 bg-black/30 p-3">
+                      <label className="block text-gray-500" htmlFor={`customer-rating-${customer.id}`}>
+                        Rating
+                      </label>
+                      <select
+                        id={`customer-rating-${customer.id}`}
+                        value={ratingInputs[customer.id] || '5'}
+                        onChange={updateRatingInput(customer.id)}
+                        className="mt-2 h-9 w-full rounded-lg border border-cyan-500/25 bg-black/60 px-2 text-sm font-semibold text-cyan-300 transition-colors focus:border-cyan-400 focus:outline-none"
+                        aria-label={`Rating for ${customer.name || customer.email}`}
+                      >
+                        {ratingOptions.map((rating) => (
+                          <option key={rating} value={rating} className="bg-gray-950 text-white">
+                            {rating}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="rounded-lg border border-cyan-500/10 bg-black/30 p-3">
+                      <p className="text-gray-500">Count</p>
+                      <p className="mt-1 font-semibold text-white">{customer.rating_count || 0}</p>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-xs text-gray-500">Joined {formatDate(customer.created_at)}</p>
+
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => handleRateCustomer(customer)}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-3 py-2 text-sm font-semibold text-black transition-colors hover:bg-cyan-400"
+                    >
+                      <Star size={16} />
+                      Rate
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
 
         {(error || message) && (
           <div

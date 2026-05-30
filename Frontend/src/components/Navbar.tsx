@@ -16,13 +16,16 @@ const Navbar = ({ pages, activePage, isMenuOpen, onToggleMenu, onNavigate, actio
   <nav className="fixed top-0 w-full bg-black/80 backdrop-blur-md z-50 border-b border-cyan-500/20" aria-label="Primary">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center h-16">
-        <motion.div
+        <motion.button
+          type="button"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-2xl font-bold text-cyan-400"
+          onClick={() => onNavigate('home')}
+          className="text-2xl font-bold text-cyan-400 transition-colors hover:text-cyan-300 focus:outline-none"
+          aria-label="Go to home page"
         >
           AutoRent
-        </motion.div>
+        </motion.button>
         <div className="hidden md:flex space-x-8">
           {pages.map((page) => (
             <button

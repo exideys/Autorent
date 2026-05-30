@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion';
-import { Calendar, Gauge, RefreshCw, Search, Shield, SlidersHorizontal, Users, X } from 'lucide-react';
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { Calendar, Gauge, RefreshCw, Search, Shield, SlidersHorizontal, Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { currencyFormatter, fallbackImageUrl, mainImage } from '../lib/carDisplay';
 import type { Car } from '../types/api';
+import BookingModal from './BookingModal';
+import VehicleDetailsModal from './VehicleDetailsModal';
 
 interface ShowroomSectionProps {
   cars: Car[];
@@ -42,21 +45,8 @@ const defaultFilters: FilterState = {
   sortOrder: 'asc',
 };
 
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 0,
-});
-
 const fieldClass =
   'h-11 w-full rounded-lg border border-cyan-500/25 bg-black/60 px-3 text-sm text-white placeholder-gray-500 focus:border-cyan-300 focus:outline-none transition-colors';
-
-const fallbackImageUrl = `${import.meta.env.BASE_URL}hero-main.png`;
-
-const mainImage = (car: Car) => {
-  const selectedImage = car.images.find((image) => image.is_main) || car.images[0];
-  return selectedImage?.image_url || fallbackImageUrl;
-};
 
 const uniqueValues = (cars: Car[], selector: (car: Car) => string) =>
   Array.from(new Set(cars.map(selector).filter(Boolean))).sort((first, second) => first.localeCompare(second));
@@ -94,27 +84,11 @@ const matchesText = (car: Car, search: string) => {
     .includes(normalizedSearch);
 };
 
-const detailRows = (car: Car) => [
-  ['Brand', car.brand],
-  ['Model', car.model],
-  ['Year', car.year],
-  ['Class', car.car_class],
-  ['Body type', car.body_type],
-  ['Transmission', car.transmission],
-  ['Fuel type', car.fuel_type],
-  ['Seats', car.seats],
-  ['Doors', car.doors],
-  ['Engine volume', car.engine_volume ? `${car.engine_volume}L` : 'Not specified'],
-  ['Horsepower', car.horsepower ? `${car.horsepower} hp` : 'Not specified'],
-  ['Price per day', currencyFormatter.format(car.price_per_day)],
-  ['Deposit', currencyFormatter.format(car.deposit)],
-  ['Color', car.color || 'Not specified'],
-  ['Status', car.status],
-];
-
 const ShowroomSection = ({ cars, isLoading, error, onRetry }: ShowroomSectionProps) => {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(true);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
+  const [bookingCar, setBookingCar] = useState<Car | null>(null);
 
   const filterOptions = useMemo(
     () => ({
@@ -157,6 +131,22 @@ const ShowroomSection = ({ cars, isLoading, error, onRetry }: ShowroomSectionPro
     });
   }, [cars, filters]);
 
+  const vehicleCountText = isLoading
+    ? 'Loading cars...'
+    : `${visibleCars.length} of ${cars.length} vehicle${cars.length === 1 ? '' : 's'}`;
+  const hasActiveFilters =
+    filters.search.trim() !== '' ||
+    filters.carClass !== defaultFilters.carClass ||
+    filters.bodyType !== defaultFilters.bodyType ||
+    filters.transmission !== defaultFilters.transmission ||
+    filters.fuelType !== defaultFilters.fuelType ||
+    filters.sortBy !== defaultFilters.sortBy ||
+    filters.sortOrder !== defaultFilters.sortOrder;
+  const showroomLayoutClass = isFiltersOpen
+    ? 'grid min-h-[calc(100vh-4rem)] grid-cols-1 gap-0 lg:grid-cols-[20rem_minmax(0,1fr)]'
+    : 'grid min-h-[calc(100vh-4rem)] grid-cols-1 gap-0 lg:grid-cols-[5rem_minmax(0,1fr)]';
+  const filterToggleLabel = isFiltersOpen ? 'Hide filters' : 'Show filters';
+
   const updateFilter = <K extends keyof FilterState>(field: K, value: FilterState[K]) => {
     setFilters((current) => ({
       ...current,
@@ -164,31 +154,36 @@ const ShowroomSection = ({ cars, isLoading, error, onRetry }: ShowroomSectionPro
     }));
   };
 
-  const openWithKeyboard = (event: KeyboardEvent<HTMLElement>, car: Car) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      setSelectedCar(car);
-    }
-  };
-
   return (
     <section id="showroom" className="py-0">
-      <div className="grid min-h-[calc(100vh-4rem)] grid-cols-1 gap-0 lg:grid-cols-[20rem_minmax(0,1fr)]">
-          <aside className="border-y border-r border-cyan-500/20 bg-black/50 p-5 shadow-2xl lg:sticky lg:top-16 lg:min-h-[calc(100vh-4rem)]">
+      <div className={showroomLayoutClass}>
+          <aside
+            className={`border-y border-r border-cyan-500/20 bg-black/50 shadow-2xl lg:sticky lg:top-16 lg:min-h-[calc(100vh-4rem)] ${
+              isFiltersOpen ? 'p-5' : 'p-3 lg:p-4'
+            }`}
+          >
+            {isFiltersOpen ? (
+              <>
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Filters</p>
                 <h3 className="mt-1 text-xl font-semibold text-white">Sort showroom</h3>
-                <p className="mt-2 text-sm text-gray-400">
-                  {isLoading
-                    ? 'Loading cars...'
-                    : `${visibleCars.length} of ${cars.length} vehicle${cars.length === 1 ? '' : 's'}`}
-                </p>
+                <p className="mt-2 text-sm text-gray-400">{vehicleCountText}</p>
               </div>
-              <SlidersHorizontal size={20} className="text-cyan-300" />
+              <button
+                type="button"
+                onClick={() => setIsFiltersOpen(false)}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyan-500/30 text-cyan-200 transition-colors hover:bg-cyan-500/10"
+                aria-controls="showroom-filters-panel"
+                aria-expanded={isFiltersOpen}
+                aria-label={filterToggleLabel}
+                title={filterToggleLabel}
+              >
+                <SlidersHorizontal size={20} />
+              </button>
             </div>
 
-            <div className="space-y-4">
+            <div id="showroom-filters-panel" className="space-y-4">
               <label className="relative block">
                 <span className="mb-2 block text-sm text-gray-300">Search</span>
                 <Search size={16} className="absolute left-3 top-[2.65rem] text-cyan-300" />
@@ -301,6 +296,32 @@ const ShowroomSection = ({ cars, isLoading, error, onRetry }: ShowroomSectionPro
                 </button>
               </div>
             </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-between gap-3 lg:flex-col lg:justify-start">
+                <div className="min-w-0 lg:hidden">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Filters</p>
+                  <p className="mt-2 text-xs text-gray-400 lg:hidden">{vehicleCountText}</p>
+                  {hasActiveFilters && (
+                    <span className="mt-2 inline-flex rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-cyan-200">
+                      Active
+                    </span>
+                  )}
+                </div>
+                {hasActiveFilters && <span className="hidden h-2 w-2 rounded-full bg-cyan-300 lg:block" aria-hidden="true" />}
+                <button
+                  type="button"
+                  onClick={() => setIsFiltersOpen(true)}
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyan-500/30 text-cyan-200 transition-colors hover:bg-cyan-500/10"
+                  aria-controls="showroom-filters-panel"
+                  aria-expanded={isFiltersOpen}
+                  aria-label={filterToggleLabel}
+                  title={filterToggleLabel}
+                >
+                  <SlidersHorizontal size={20} />
+                </button>
+              </div>
+            )}
           </aside>
 
           <div className="min-w-0 px-4 py-5 lg:px-8">
@@ -325,12 +346,8 @@ const ShowroomSection = ({ cars, isLoading, error, onRetry }: ShowroomSectionPro
                 {visibleCars.map((car) => (
                   <motion.article
                     key={car.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedCar(car)}
-                    onKeyDown={(event) => openWithKeyboard(event, car)}
                     whileHover={{ scale: 1.02 }}
-                    className="cursor-pointer overflow-hidden rounded-xl border border-cyan-500/20 bg-black/45 shadow-lg hover:border-cyan-300/50 hover:shadow-cyan-500/25 focus:border-cyan-300 focus:outline-none transition-all duration-300"
+                    className="overflow-hidden rounded-xl border border-cyan-500/20 bg-black/45 shadow-lg transition-all duration-300 hover:border-cyan-300/50 hover:shadow-cyan-500/25"
                   >
                     <div className="relative h-44">
                       <img
@@ -378,9 +395,22 @@ const ShowroomSection = ({ cars, isLoading, error, onRetry }: ShowroomSectionPro
                           <span>Deposit {currencyFormatter.format(car.deposit)}</span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-cyan-300 font-semibold">{currencyFormatter.format(car.price_per_day)} / day</p>
-                        <span className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-black">Details</span>
+                      <p className="font-semibold text-cyan-300">{currencyFormatter.format(car.price_per_day)} / day</p>
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCar(car)}
+                          className="rounded-lg border border-cyan-500/30 px-4 py-2 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-500/10"
+                        >
+                          Details
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBookingCar(car)}
+                          className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-cyan-400"
+                        >
+                          Booking
+                        </button>
                       </div>
                     </div>
                   </motion.article>
@@ -391,89 +421,16 @@ const ShowroomSection = ({ cars, isLoading, error, onRetry }: ShowroomSectionPro
       </div>
 
       {selectedCar && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 px-4 py-6 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-xl border border-cyan-500/30 bg-gray-950 shadow-2xl"
-          >
-            <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-cyan-500/20 bg-gray-950/95 p-5 backdrop-blur">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">Vehicle details</p>
-                <h3 className="mt-1 text-2xl font-bold text-white">
-                  {selectedCar.brand} {selectedCar.model}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedCar(null)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-500/30 text-cyan-100 hover:bg-cyan-500/10 transition-colors"
-                aria-label="Close vehicle details"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(20rem,0.95fr)]">
-              <div className="space-y-4">
-                <img
-                  src={mainImage(selectedCar)}
-                  alt={`${selectedCar.brand} ${selectedCar.model}`}
-                  className="h-72 w-full rounded-xl object-cover"
-                  onError={(event) => {
-                    event.currentTarget.onerror = null;
-                    event.currentTarget.src = fallbackImageUrl;
-                  }}
-                />
-                {selectedCar.images.length > 1 && (
-                  <div className="grid grid-cols-3 gap-3">
-                    {selectedCar.images.slice(0, 6).map((image) => (
-                      <img
-                        key={image.id}
-                        src={image.image_url}
-                        alt={`${selectedCar.brand} ${selectedCar.model}`}
-                        className="h-24 rounded-lg object-cover"
-                        onError={(event) => {
-                          event.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-cyan-500/20 bg-black/35 p-4">
-                    <p className="text-sm text-gray-400">Daily price</p>
-                    <p className="mt-1 text-2xl font-bold text-cyan-300">{currencyFormatter.format(selectedCar.price_per_day)}</p>
-                  </div>
-                  <div className="rounded-xl border border-cyan-500/20 bg-black/35 p-4">
-                    <p className="text-sm text-gray-400">Deposit</p>
-                    <p className="mt-1 text-2xl font-bold text-white">{currencyFormatter.format(selectedCar.deposit)}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {detailRows(selectedCar).map(([label, value]) => (
-                    <div key={label} className="rounded-lg border border-cyan-500/10 bg-black/30 p-3">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
-                      <p className="mt-1 text-sm font-semibold text-gray-100 capitalize">{value}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  className="w-full rounded-lg bg-gradient-to-r from-cyan-500 to-violet-600 px-5 py-3 font-semibold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-600 hover:to-violet-700 transition-colors"
-                >
-                  Start Booking
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
+        <VehicleDetailsModal
+          car={selectedCar}
+          onClose={() => setSelectedCar(null)}
+          onBooking={(car) => {
+            setSelectedCar(null);
+            setBookingCar(car);
+          }}
+        />
       )}
+      {bookingCar && <BookingModal car={bookingCar} onClose={() => setBookingCar(null)} />}
     </section>
   );
 };
