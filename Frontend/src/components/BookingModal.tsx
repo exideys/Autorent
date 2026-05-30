@@ -1,17 +1,18 @@
 import { motion } from 'framer-motion';
-import { Calendar, Clock, Mail, MapPin, Phone, User, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, X } from 'lucide-react';
 import { useState } from 'react';
 import { currencyFormatter } from '../lib/carDisplay';
+import { createRentalOrder } from '../lib/api';
 import type { Car } from '../types/api';
 
 interface BookingModalProps {
   car: Car;
+  token?: string;
+  onCreated?: () => void | Promise<void>;
   onClose: () => void;
 }
 
 interface BookingFormState {
-  name: string;
-  email: string;
   phone: string;
   pickupLocation: string;
   pickupDate: string;
@@ -21,8 +22,6 @@ interface BookingFormState {
 }
 
 const initialForm: BookingFormState = {
-  name: '',
-  email: '',
   phone: '',
   pickupLocation: '',
   pickupDate: '',
@@ -34,10 +33,11 @@ const initialForm: BookingFormState = {
 const fieldClass =
   'h-11 w-full rounded-lg border border-cyan-500/25 bg-black/60 px-3 text-sm text-white placeholder-gray-500 transition-colors focus:border-cyan-300 focus:outline-none';
 
-const BookingModal = ({ car, onClose }: BookingModalProps) => {
+const BookingModal = ({ car, token, onCreated, onClose }: BookingModalProps) => {
   const [form, setForm] = useState<BookingFormState>(initialForm);
   const [error, setError] = useState('');
-  const [isPrepared, setIsPrepared] = useState(false);
+  const [isCreated, setIsCreated] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateField = <K extends keyof BookingFormState>(field: K, value: BookingFormState[K]) => {
     setForm((current) => ({
@@ -46,13 +46,16 @@ const BookingModal = ({ car, onClose }: BookingModalProps) => {
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError('');
-    setIsPrepared(false);
+    setIsCreated(false);
+
+    if (!token) {
+      setError('Please sign in to book a vehicle.');
+      return;
+    }
 
     const requiredFields = [
-      form.name.trim(),
-      form.email.trim(),
       form.phone.trim(),
       form.pickupLocation.trim(),
       form.pickupDate,
@@ -70,25 +73,24 @@ const BookingModal = ({ car, onClose }: BookingModalProps) => {
       return;
     }
 
-    const subject = `Booking request: ${car.brand} ${car.model}`;
-    const body = [
-      `Vehicle: ${car.brand} ${car.model} (${car.year})`,
-      `Daily price: ${currencyFormatter.format(car.price_per_day)}`,
-      `Deposit: ${currencyFormatter.format(car.deposit)}`,
-      '',
-      `Name: ${form.name.trim()}`,
-      `Email: ${form.email.trim()}`,
-      `Phone: ${form.phone.trim()}`,
-      `Pickup location: ${form.pickupLocation.trim()}`,
-      `Pickup date: ${form.pickupDate}`,
-      `Pickup time: ${form.pickupTime}`,
-      `Return date: ${form.returnDate}`,
-      '',
-      `Notes: ${form.notes.trim() || 'None'}`,
-    ].join('\n');
-
-    window.location.href = `mailto:info@autorent.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    setIsPrepared(true);
+    setIsSubmitting(true);
+    try {
+      await createRentalOrder(token, {
+        car_id: car.id,
+        start_date: form.pickupDate,
+        end_date: form.returnDate,
+        pickup_location: form.pickupLocation.trim(),
+        pickup_time: form.pickupTime,
+        phone: form.phone.trim(),
+        notes: form.notes.trim() || undefined,
+      });
+      setIsCreated(true);
+      await onCreated?.();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Unable to create booking.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -128,26 +130,6 @@ const BookingModal = ({ car, onClose }: BookingModalProps) => {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block space-y-2 text-sm text-gray-300">
-              <span className="flex items-center gap-2">
-                <User size={16} className="text-cyan-300" />
-                Full name
-              </span>
-              <input value={form.name} onChange={(event) => updateField('name', event.target.value)} className={fieldClass} placeholder="Jane Driver" />
-            </label>
-            <label className="block space-y-2 text-sm text-gray-300">
-              <span className="flex items-center gap-2">
-                <Mail size={16} className="text-cyan-300" />
-                Email
-              </span>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(event) => updateField('email', event.target.value)}
-                className={fieldClass}
-                placeholder="you@example.com"
-              />
-            </label>
             <label className="block space-y-2 text-sm text-gray-300">
               <span className="flex items-center gap-2">
                 <Phone size={16} className="text-cyan-300" />
@@ -204,18 +186,19 @@ const BookingModal = ({ car, onClose }: BookingModalProps) => {
               {error}
             </p>
           )}
-          {isPrepared && (
+          {isCreated && (
             <p className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-100">
-              Booking request prepared in your email app.
+              Booking created. You can view it in your profile.
             </p>
           )}
 
           <button
             type="button"
             onClick={handleSubmit}
-            className="w-full rounded-lg bg-gradient-to-r from-cyan-500 to-violet-600 px-5 py-3 font-semibold text-white shadow-lg shadow-cyan-500/20 transition-colors hover:from-cyan-600 hover:to-violet-700"
+            disabled={isSubmitting || isCreated}
+            className="w-full rounded-lg bg-gradient-to-r from-cyan-500 to-violet-600 px-5 py-3 font-semibold text-white shadow-lg shadow-cyan-500/20 transition-colors hover:from-cyan-600 hover:to-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Send Booking Request
+            {isSubmitting ? 'Creating Booking...' : isCreated ? 'Booking Created' : 'Create Booking'}
           </button>
         </div>
       </motion.div>

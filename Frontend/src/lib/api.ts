@@ -8,6 +8,8 @@ import type {
   LoginPayload,
   RateUserPayload,
   RegisterPayload,
+  RentalOrder,
+  RentalOrderInput,
   User,
 } from '../types/api';
 
@@ -104,6 +106,18 @@ export const getCurrentUser = (token: string) =>
     token,
   });
 
+export const createRentalOrder = (token: string, payload: RentalOrderInput) =>
+  apiRequest<RentalOrder>('/rental-orders', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+export const listMyRentalOrders = (token: string) =>
+  apiRequest<RentalOrder[]>('/rental-orders', {
+    token,
+  });
+
 export const listAdminCars = (token: string) =>
   apiRequest<Car[]>('/admin/cars?sort=created_at&order=desc', {
     token,
@@ -111,6 +125,11 @@ export const listAdminCars = (token: string) =>
 
 export const listAdminUsers = (token: string) =>
   apiRequest<User[]>('/admin/users', {
+    token,
+  });
+
+export const listAdminUserRentalOrders = (token: string, userID: number) =>
+  apiRequest<RentalOrder[]>(`/admin/users/${userID}/rental-orders`, {
     token,
   });
 
