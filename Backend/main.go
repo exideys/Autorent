@@ -26,6 +26,12 @@ func main() {
 		log.Fatal("Failed to load config:", err)
 	}
 
+	if cfg.GeminiAPIKey == "" {
+		log.Println("GEMINI_API_KEY is not set. AI car assistant will be disabled.")
+	} else {
+		log.Printf("GEMINI_API_KEY is set. AI car assistant will be enabled using model: %s", cfg.GeminiModel)
+	}
+
 	// Connect to database
 	db, err := sql.Open("mysql", cfg.DatabaseDSN)
 	if err != nil {
