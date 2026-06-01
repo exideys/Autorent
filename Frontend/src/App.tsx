@@ -206,6 +206,7 @@ const App = () => {
       ) : isProfilePage && user ? (
         <ProfilePage
           user={user}
+          token={auth?.token || ''}
           onAdminClick={() => handleNavigate('admin')}
           onLogout={handleLogout}
           onShowroomClick={() => handleNavigate('showroom')}
@@ -231,14 +232,23 @@ const App = () => {
                 cars={cars}
                 isLoading={isCarsLoading}
                 error={carsError}
+                token={auth?.token}
                 onExploreShowroom={() => handleNavigate('showroom')}
+                onBookingCreated={loadCars}
               />
             )}
 
             {activePage === 'showroom' && <AICarAssistant />}
 
             {activePage === 'showroom' && (
-              <ShowroomSection cars={cars} isLoading={isCarsLoading} error={carsError} onRetry={loadCars} />
+              <ShowroomSection
+                cars={cars}
+                isLoading={isCarsLoading}
+                error={carsError}
+                token={auth?.token}
+                onRetry={loadCars}
+                onBookingCreated={loadCars}
+              />
             )}
 
             {isNewsPage && <NewsListSection articles={news} isLoading={isNewsLoading} error={newsError} onRetry={loadNews} />}

@@ -10,6 +10,8 @@ import type {
   NewsInput,
   RateUserPayload,
   RegisterPayload,
+  RentalOrder,
+  RentalOrderInput,
   User,
 } from '../types/api';
 
@@ -105,6 +107,18 @@ export const registerUser = (payload: RegisterPayload) =>
 
 export const getCurrentUser = (token: string) =>
   apiRequest<User>('/auth/me', {
+    token,
+  });
+
+export const createRentalOrder = (token: string, payload: RentalOrderInput) =>
+  apiRequest<RentalOrder>('/rental-orders', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+export const listMyRentalOrders = (token: string) =>
+  apiRequest<RentalOrder[]>('/rental-orders', {
     token,
   });
 

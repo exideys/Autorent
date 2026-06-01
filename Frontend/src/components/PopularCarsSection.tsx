@@ -10,10 +10,12 @@ interface PopularCarsSectionProps {
   cars: Car[];
   error: string;
   isLoading: boolean;
+  token?: string;
   onExploreShowroom: () => void;
+  onBookingCreated: () => void | Promise<void>;
 }
 
-const PopularCarsSection = ({ cars, error, isLoading, onExploreShowroom }: PopularCarsSectionProps) => {
+const PopularCarsSection = ({ cars, error, isLoading, token, onExploreShowroom, onBookingCreated }: PopularCarsSectionProps) => {
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [bookingCar, setBookingCar] = useState<Car | null>(null);
   const popularCars = cars.slice(0, 10);
@@ -135,7 +137,7 @@ const PopularCarsSection = ({ cars, error, isLoading, onExploreShowroom }: Popul
           }}
         />
       )}
-      {bookingCar && <BookingModal car={bookingCar} onClose={() => setBookingCar(null)} />}
+      {bookingCar && <BookingModal car={bookingCar} token={token} onCreated={onBookingCreated} onClose={() => setBookingCar(null)} />}
     </section>
   );
 };

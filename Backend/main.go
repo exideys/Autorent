@@ -12,6 +12,7 @@ import (
 	"autorent-backend/internal/config"
 	"autorent-backend/internal/handlers"
 	"autorent-backend/internal/repository"
+	"autorent-backend/internal/services"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -65,6 +66,9 @@ func main() {
 	r.GET("/health", handlers.HealthHandler)
 	tokenManager := auth.NewTokenManager(cfg.JWTSecret, cfg.JWTTokenTTL)
 	carRepository := repository.NewCarRepository(db)
+	rentalOrderRepository := repository.NewRentalOrderRepository(db)
+	carService := services.NewCarService(carRepository, rentalOrderRepository)
+	rentalOrderService := services.NewRentalOrderService(rentalOrderRepository)
 	userRepository := repository.NewUserRepository(db)
 	newsRepository := repository.NewNewsRepository(db)
 	var aiExtractor ai.CarFilterExtractor
@@ -76,13 +80,14 @@ func main() {
 
 	api := r.Group("/api")
 	handlers.RegisterAuthRoutes(api.Group("/auth"), userRepository, tokenManager, cfg.AdminSetupToken)
-	handlers.RegisterCarRoutes(api, carRepository)
+	handlers.RegisterCarRoutes(api, carService)
+	handlers.RegisterRentalOrderRoutes(api, rentalOrderService, tokenManager)
 	handlers.RegisterAIRoutes(api, carRepository, aiExtractor)
 	handlers.RegisterNewsRoutes(api, newsRepository)
 
 	adminAPI := api.Group("/admin")
 	adminAPI.Use(handlers.RequireAdmin(tokenManager))
-	handlers.RegisterAdminCarRoutes(adminAPI, carRepository)
+	handlers.RegisterAdminCarRoutes(adminAPI, carService)
 	handlers.RegisterAdminUserRoutes(adminAPI, userRepository)
 	handlers.RegisterAdminNewsRoutes(adminAPI, newsRepository)
 
