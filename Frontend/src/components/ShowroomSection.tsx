@@ -10,7 +10,9 @@ interface ShowroomSectionProps {
   cars: Car[];
   isLoading: boolean;
   error: string;
+  token?: string;
   onRetry: () => void;
+  onBookingCreated: () => void | Promise<void>;
 }
 
 type SortKey =
@@ -84,7 +86,7 @@ const matchesText = (car: Car, search: string) => {
     .includes(normalizedSearch);
 };
 
-const ShowroomSection = ({ cars, isLoading, error, onRetry }: ShowroomSectionProps) => {
+const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCreated }: ShowroomSectionProps) => {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [isFiltersOpen, setIsFiltersOpen] = useState(true);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
@@ -430,7 +432,7 @@ const ShowroomSection = ({ cars, isLoading, error, onRetry }: ShowroomSectionPro
           }}
         />
       )}
-      {bookingCar && <BookingModal car={bookingCar} onClose={() => setBookingCar(null)} />}
+      {bookingCar && <BookingModal car={bookingCar} token={token} onCreated={onBookingCreated} onClose={() => setBookingCar(null)} />}
     </section>
   );
 };
