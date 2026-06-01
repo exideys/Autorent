@@ -1,5 +1,6 @@
 import { LogIn, LogOut, LayoutDashboard, UserCircle, UserPlus, UserRound, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from '../i18n/TranslationContext';
 import { login, registerUser } from '../lib/api';
 import type { AuthResponse, User } from '../types/api';
 
@@ -32,6 +33,30 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useTranslation([
+    'Checking...',
+    'Account',
+    'Login',
+    'Register',
+    'Signed in as',
+    'View Profile',
+    'Admin Dashboard',
+    'Sign Out',
+    'First Name',
+    'Last Name',
+    'Email',
+    'Password',
+    'Confirm Password',
+    'At least 8 characters',
+    'Your password',
+    'Repeat your password',
+    'Passwords do not match',
+    'Unable to complete request',
+    'Please wait...',
+    'Create Account',
+    user?.role,
+    error,
+  ]);
 
   const resetForm = () => {
     setFirstName('');
@@ -90,13 +115,13 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
         aria-expanded={isOpen}
       >
         <UserCircle size={18} />
-        <span className="hidden sm:inline">{isSessionLoading ? 'Checking...' : user?.name || 'Account'}</span>
+        <span className="hidden sm:inline">{isSessionLoading ? t('Checking...') : user?.name || t('Account')}</span>
       </button>
 
       {isOpen && (
         <div className="absolute right-0 mt-3 w-[min(21rem,calc(100vw-2rem))] rounded-xl border border-cyan-500/20 bg-gray-950/95 p-4 shadow-2xl shadow-black/40 backdrop-blur-xl">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-cyan-100">{user ? 'Account' : mode === 'login' ? 'Login' : 'Register'}</p>
+            <p className="text-sm font-semibold text-cyan-100">{user ? t('Account') : mode === 'login' ? t('Login') : t('Register')}</p>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
@@ -110,11 +135,11 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
           {user ? (
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-400">Signed in as</p>
+                <p className="text-sm text-gray-400">{t('Signed in as')}</p>
                 <p className="font-semibold text-white">{user.name}</p>
                 <p className="text-sm text-gray-400">{user.email}</p>
                 <span className="mt-2 inline-flex rounded-full border border-cyan-300/30 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-200">
-                  {user.role}
+                  {t(user.role)}
                 </span>
               </div>
 
@@ -127,7 +152,7 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-500/10 transition-colors"
               >
                 <UserRound size={16} />
-                View Profile
+                {t('View Profile')}
               </button>
 
               {user.role === 'admin' && (
@@ -140,7 +165,7 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
                   className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-black hover:bg-cyan-400 transition-colors"
                 >
                   <LayoutDashboard size={16} />
-                  Admin Dashboard
+                  {t('Admin Dashboard')}
                 </button>
               )}
 
@@ -153,24 +178,24 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-300/30 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/10 transition-colors"
               >
                 <LogOut size={16} />
-                Sign Out
+                {t('Sign Out')}
               </button>
             </div>
           ) : (
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="flex rounded-xl bg-black/40 p-1">
                 <button type="button" onClick={() => handleModeChange('login')} className={tabClass(mode === 'login')}>
-                  Login
+                  {t('Login')}
                 </button>
                 <button type="button" onClick={() => handleModeChange('register')} className={tabClass(mode === 'register')}>
-                  Register
+                  {t('Register')}
                 </button>
               </div>
 
               {mode === 'register' && (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <label className="block space-y-2 text-sm text-gray-300">
-                    <span>First Name</span>
+                    <span>{t('First Name')}</span>
                     <input
                       type="text"
                       value={firstName}
@@ -183,7 +208,7 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
                   </label>
 
                   <label className="block space-y-2 text-sm text-gray-300">
-                    <span>Last Name</span>
+                    <span>{t('Last Name')}</span>
                     <input
                       type="text"
                       value={lastName}
@@ -198,7 +223,7 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
               )}
 
               <label className="block space-y-2 text-sm text-gray-300">
-                <span>Email</span>
+                <span>{t('Email')}</span>
                 <input
                   type="email"
                   value={email}
@@ -211,7 +236,7 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
               </label>
 
               <label className="block space-y-2 text-sm text-gray-300">
-                <span>Password</span>
+                <span>{t('Password')}</span>
                 <input
                   type="password"
                   value={password}
@@ -220,13 +245,13 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
                   minLength={mode === 'register' ? 8 : undefined}
                   maxLength={72}
                   className={inputClass}
-                  placeholder={mode === 'register' ? 'At least 8 characters' : 'Your password'}
+                  placeholder={mode === 'register' ? t('At least 8 characters') : t('Your password')}
                 />
               </label>
 
               {mode === 'register' && (
                 <label className="block space-y-2 text-sm text-gray-300">
-                  <span>Confirm Password</span>
+                    <span>{t('Confirm Password')}</span>
                   <input
                     type="password"
                     value={confirmPassword}
@@ -235,14 +260,14 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
                     minLength={8}
                     maxLength={72}
                     className={inputClass}
-                    placeholder="Repeat your password"
+                    placeholder={t('Repeat your password')}
                   />
                 </label>
               )}
 
               {error && (
                 <p className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200" role="alert">
-                  {error}
+                  {t(error)}
                 </p>
               )}
 
@@ -252,7 +277,7 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-black hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
               >
                 {mode === 'login' ? <LogIn size={16} /> : <UserPlus size={16} />}
-                {isSubmitting ? 'Please wait...' : mode === 'login' ? 'Login' : 'Create Account'}
+                {isSubmitting ? t('Please wait...') : mode === 'login' ? t('Login') : t('Create Account')}
               </button>
             </form>
           )}

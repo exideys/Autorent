@@ -19,6 +19,8 @@ func TestLoadBuildsDatabaseAndAuthConfigFromEnv(t *testing.T) {
 	t.Setenv("ADMIN_SETUP_TOKEN", "setup-token")
 	t.Setenv("GEMINI_API_KEY", "gemini-key")
 	t.Setenv("GEMINI_MODEL", "gemini-test-model")
+	t.Setenv("DEEPL_API_KEY", "deepl-key")
+	t.Setenv("DEEPL_API_URL", "https://example.deepl.test")
 
 	cfg, err := Load()
 	if err != nil {
@@ -62,6 +64,12 @@ func TestLoadBuildsDatabaseAndAuthConfigFromEnv(t *testing.T) {
 	}
 	if cfg.GeminiModel != "gemini-test-model" {
 		t.Fatalf("expected configured gemini model")
+	}
+	if cfg.DeepLAPIKey != "deepl-key" {
+		t.Fatalf("expected configured deepl api key")
+	}
+	if cfg.DeepLAPIURL != "https://example.deepl.test" {
+		t.Fatalf("expected configured deepl api url, got %q", cfg.DeepLAPIURL)
 	}
 }
 
@@ -128,5 +136,19 @@ func TestLoadDefaultsGeminiModel(t *testing.T) {
 
 	if cfg.GeminiModel != "gemini-2.5-flash" {
 		t.Fatalf("expected default gemini model, got %q", cfg.GeminiModel)
+	}
+}
+
+func TestLoadDefaultsDeepLAPIURL(t *testing.T) {
+	t.Setenv("DB_TLS", "false")
+	t.Setenv("DEEPL_API_URL", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	if cfg.DeepLAPIURL != "https://api-free.deepl.com" {
+		t.Fatalf("expected default deepl api url, got %q", cfg.DeepLAPIURL)
 	}
 }

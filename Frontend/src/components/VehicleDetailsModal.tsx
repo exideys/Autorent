@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { currencyFormatter, detailRows, fallbackImageUrl, mainImage } from '../lib/carDisplay';
+import { useTranslation } from '../i18n/TranslationContext';
+import { currencyFormatter, detailRows, displayVehicleTerm, fallbackImageUrl, mainImage, translatableVehicleTerms } from '../lib/carDisplay';
 import type { Car } from '../types/api';
 
 interface VehicleDetailsModalProps {
@@ -14,6 +15,27 @@ const VehicleDetailsModal = ({ car, onBooking, onClose }: VehicleDetailsModalPro
   const defaultImageUrl = useMemo(() => mainImage(car), [car]);
   const [selectedImageUrl, setSelectedImageUrl] = useState(defaultImageUrl);
   const thumbnailImages = car.images.slice(0, 6);
+  const rows = detailRows(car);
+  const translatableValueLabels = new Set(['Class', 'Body type', 'Transmission', 'Fuel type', 'Color', 'Status']);
+  const { t } = useTranslation([
+    'Vehicle details',
+    'Daily price',
+    'Deposit',
+    'Booking',
+    'Not specified',
+    ...rows.map(([label]) => String(label)),
+    ...translatableVehicleTerms(
+      rows.filter(([label, value]) => translatableValueLabels.has(String(label)) && typeof value === 'string').map(([, value]) => String(value)),
+    ),
+  ]);
+
+  const detailValue = (label: string, value: string | number) => {
+    if (typeof value === 'string' && (translatableValueLabels.has(label) || value === 'Not specified')) {
+      return displayVehicleTerm(value, t);
+    }
+
+    return value;
+  };
 
   useEffect(() => {
     setSelectedImageUrl(defaultImageUrl);
@@ -28,7 +50,7 @@ const VehicleDetailsModal = ({ car, onBooking, onClose }: VehicleDetailsModalPro
       >
         <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-cyan-500/20 bg-gray-950/95 p-5 backdrop-blur">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">Vehicle details</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">{t('Vehicle details')}</p>
             <h3 className="mt-1 text-2xl font-bold text-white">
               {car.brand} {car.model}
             </h3>
@@ -90,20 +112,20 @@ const VehicleDetailsModal = ({ car, onBooking, onClose }: VehicleDetailsModalPro
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-cyan-500/20 bg-black/35 p-4">
-                <p className="text-sm text-gray-400">Daily price</p>
+                <p className="text-sm text-gray-400">{t('Daily price')}</p>
                 <p className="mt-1 text-2xl font-bold text-cyan-300">{currencyFormatter.format(car.price_per_day)}</p>
               </div>
               <div className="rounded-xl border border-cyan-500/20 bg-black/35 p-4">
-                <p className="text-sm text-gray-400">Deposit</p>
+                <p className="text-sm text-gray-400">{t('Deposit')}</p>
                 <p className="mt-1 text-2xl font-bold text-white">{currencyFormatter.format(car.deposit)}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {detailRows(car).map(([label, value]) => (
+              {rows.map(([label, value]) => (
                 <div key={label} className="rounded-lg border border-cyan-500/10 bg-black/30 p-3">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
-                  <p className="mt-1 text-sm font-semibold capitalize text-gray-100">{value}</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">{t(String(label))}</p>
+                  <p className="mt-1 text-sm font-semibold capitalize text-gray-100">{detailValue(String(label), value)}</p>
                 </div>
               ))}
             </div>
@@ -113,7 +135,7 @@ const VehicleDetailsModal = ({ car, onBooking, onClose }: VehicleDetailsModalPro
               onClick={() => onBooking(car)}
               className="w-full rounded-lg bg-gradient-to-r from-cyan-500 to-violet-600 px-5 py-3 font-semibold text-white shadow-lg shadow-cyan-500/20 transition-colors hover:from-cyan-600 hover:to-violet-700"
             >
-              Booking
+              {t('Booking')}
             </button>
           </div>
         </div>

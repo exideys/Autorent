@@ -1,5 +1,6 @@
 import { CalendarDays, Hash, LayoutDashboard, LogOut, Mail, Shield, Star, UserCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../i18n/TranslationContext';
 import { ApiError, listMyRentalOrders } from '../lib/api';
 import type { RentalOrder, User } from '../types/api';
 
@@ -44,14 +45,54 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: P
   const [orders, setOrders] = useState<RentalOrder[]>([]);
   const [isOrdersLoading, setIsOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState('');
-  const displayName = user.name?.trim() || 'AutoRent member';
-  const firstName = user.first_name?.trim() || 'Not specified';
-  const lastName = user.last_name?.trim() || 'Not specified';
-  const email = user.email || 'Email not available';
+  const displayName = user.name?.trim();
+  const firstName = user.first_name?.trim();
+  const lastName = user.last_name?.trim();
+  const email = user.email;
   const role = user.role || 'user';
   const status = user.status || 'unknown';
-  const rating = Number.isFinite(user.rating) ? user.rating.toFixed(1) : 'Not rated';
+  const rating = Number.isFinite(user.rating) ? user.rating.toFixed(1) : '';
   const ratingCount = Number.isFinite(user.rating_count) ? user.rating_count : 0;
+  const { t } = useTranslation([
+    'Not available',
+    'AutoRent member',
+    'Not specified',
+    'Email not available',
+    'Not rated',
+    'Profile',
+    'View Showroom',
+    'Admin Dashboard',
+    'Sign Out',
+    'Account details',
+    'Your current session profile from AutoRent authentication.',
+    'ID',
+    'First name',
+    'Last name',
+    'Email',
+    'Role',
+    'Status',
+    'Rating',
+    'Rating count',
+    'Created at',
+    'Updated at',
+    'Rentals',
+    'Your placed orders',
+    'active',
+    'Unable to load rental orders',
+    'You do not have rental orders yet.',
+    'Total',
+    'Deposit',
+    'to',
+    'at',
+    role,
+    status,
+    ordersError,
+    ...orders.map((order) => order.status),
+  ]);
+  const displayDate = (value: string) => {
+    const formattedDate = formatDate(value);
+    return formattedDate === 'Not available' ? t('Not available') : formattedDate;
+  };
 
   useEffect(() => {
     if (!token) {
@@ -97,12 +138,12 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: P
           <section className="rounded-2xl border border-cyan-500/20 bg-black/45 p-6 shadow-2xl shadow-black/30">
             <div className="flex items-center gap-4">
               <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-500/10 text-2xl font-bold text-cyan-200">
-                {initialsFor(displayName)}
+                {initialsFor(displayName || 'AutoRent member')}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">Profile</p>
-                <h1 className="mt-1 break-words text-3xl font-bold text-white">{displayName}</h1>
-                <p className="mt-1 break-words text-sm text-gray-400">{email}</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">{t('Profile')}</p>
+                <h1 className="mt-1 break-words text-3xl font-bold text-white">{displayName || t('AutoRent member')}</h1>
+                <p className="mt-1 break-words text-sm text-gray-400">{email || t('Email not available')}</p>
               </div>
             </div>
 
@@ -112,7 +153,7 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: P
                 onClick={onShowroomClick}
                 className="rounded-lg bg-cyan-500 px-4 py-3 text-sm font-semibold text-black transition-colors hover:bg-cyan-400"
               >
-                Open Showroom
+                {t('View Showroom')}
               </button>
               {role === 'admin' && (
                 <button
@@ -121,7 +162,7 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: P
                   className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-4 py-3 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-500/10"
                 >
                   <LayoutDashboard size={17} />
-                  Admin Dashboard
+                  {t('Admin Dashboard')}
                 </button>
               )}
               <button
@@ -130,65 +171,65 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: P
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-300/30 px-4 py-3 text-sm font-semibold text-red-200 transition-colors hover:bg-red-500/10"
               >
                 <LogOut size={17} />
-                Sign Out
+                {t('Sign Out')}
               </button>
             </div>
           </section>
 
           <section className="rounded-2xl border border-cyan-500/20 bg-black/35 p-6">
-            <h2 className="text-2xl font-bold text-white">Account details</h2>
-            <p className="mt-2 text-gray-400">Your current session profile from AutoRent authentication.</p>
+            <h2 className="text-2xl font-bold text-white">{t('Account details')}</h2>
+            <p className="mt-2 text-gray-400">{t('Your current session profile from AutoRent authentication.')}</p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <div className="rounded-xl border border-cyan-500/10 bg-black/35 p-4">
                 <Hash size={22} className="text-cyan-300" />
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">ID</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('ID')}</p>
                 <p className="mt-1 text-lg font-semibold text-white">#{user.id}</p>
               </div>
               <div className="rounded-xl border border-cyan-500/10 bg-black/35 p-4">
                 <UserCircle size={22} className="text-cyan-300" />
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">First name</p>
-                <p className="mt-1 break-words text-lg font-semibold text-white">{firstName}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('First name')}</p>
+                <p className="mt-1 break-words text-lg font-semibold text-white">{firstName || t('Not specified')}</p>
               </div>
               <div className="rounded-xl border border-cyan-500/10 bg-black/35 p-4">
                 <UserCircle size={22} className="text-cyan-300" />
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Last name</p>
-                <p className="mt-1 break-words text-lg font-semibold text-white">{lastName}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('Last name')}</p>
+                <p className="mt-1 break-words text-lg font-semibold text-white">{lastName || t('Not specified')}</p>
               </div>
               <div className="rounded-xl border border-cyan-500/10 bg-black/35 p-4">
                 <Mail size={22} className="text-cyan-300" />
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Email</p>
-                <p className="mt-1 break-words text-lg font-semibold text-white">{email}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('Email')}</p>
+                <p className="mt-1 break-words text-lg font-semibold text-white">{email || t('Email not available')}</p>
               </div>
               <div className="rounded-xl border border-cyan-500/10 bg-black/35 p-4">
                 <Shield size={22} className="text-cyan-300" />
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Role</p>
-                <p className="mt-1 text-lg font-semibold capitalize text-white">{role}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('Role')}</p>
+                <p className="mt-1 text-lg font-semibold capitalize text-white">{t(role)}</p>
               </div>
               <div className="rounded-xl border border-cyan-500/10 bg-black/35 p-4">
                 <Shield size={22} className="text-cyan-300" />
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Status</p>
-                <p className="mt-1 text-lg font-semibold capitalize text-white">{status}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('Status')}</p>
+                <p className="mt-1 text-lg font-semibold capitalize text-white">{t(status)}</p>
               </div>
               <div className="rounded-xl border border-cyan-500/10 bg-black/35 p-4">
                 <Star size={22} className="text-cyan-300" />
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Rating</p>
-                <p className="mt-1 text-lg font-semibold text-white">{rating}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('Rating')}</p>
+                <p className="mt-1 text-lg font-semibold text-white">{rating || t('Not rated')}</p>
               </div>
               <div className="rounded-xl border border-cyan-500/10 bg-black/35 p-4">
                 <Star size={22} className="text-cyan-300" />
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Rating count</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('Rating count')}</p>
                 <p className="mt-1 text-lg font-semibold text-white">{ratingCount}</p>
               </div>
               <div className="rounded-xl border border-cyan-500/10 bg-black/35 p-4">
                 <CalendarDays size={22} className="text-cyan-300" />
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Created at</p>
-                <p className="mt-1 text-lg font-semibold text-white">{formatDate(user.created_at)}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('Created at')}</p>
+                <p className="mt-1 text-lg font-semibold text-white">{displayDate(user.created_at)}</p>
               </div>
               <div className="rounded-xl border border-cyan-500/10 bg-black/35 p-4">
                 <CalendarDays size={22} className="text-cyan-300" />
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Updated at</p>
-                <p className="mt-1 text-lg font-semibold text-white">{formatDate(user.updated_at)}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('Updated at')}</p>
+                <p className="mt-1 text-lg font-semibold text-white">{displayDate(user.updated_at)}</p>
               </div>
             </div>
           </section>
@@ -197,17 +238,17 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: P
         <section className="mt-6 rounded-2xl border border-cyan-500/20 bg-black/35 p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">Rentals</p>
-              <h2 className="mt-1 text-2xl font-bold text-white">Your orders</h2>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">{t('Rentals')}</p>
+              <h2 className="mt-1 text-2xl font-bold text-white">{t('Your placed orders')}</h2>
             </div>
             <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-sm text-cyan-100">
-              {orders.length} active
+              {orders.length} {t('active')}
             </span>
           </div>
 
           {ordersError && (
             <p className="mt-4 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200" role="alert">
-              {ordersError}
+              {t(ordersError)}
             </p>
           )}
 
@@ -219,7 +260,7 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: P
             </div>
           ) : orders.length === 0 ? (
             <div className="mt-6 rounded-xl border border-cyan-500/10 bg-black/35 px-4 py-8 text-center text-gray-300">
-              You do not have rental orders yet.
+              {t('You do not have rental orders yet.')}
             </div>
           ) : (
             <div className="mt-6 space-y-4">
@@ -231,22 +272,22 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: P
                         {order.car.brand} {order.car.model} ({order.car.year})
                       </h3>
                       <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-xs capitalize text-cyan-100">
-                        {order.status}
+                        {t(order.status)}
                       </span>
                     </div>
                     <p className="mt-2 text-sm text-gray-300">
-                      {formatDate(order.start_date)} to {formatDate(order.end_date)} at {order.pickup_time}
+                      {displayDate(order.start_date)} {t('to')} {displayDate(order.end_date)} {t('at')} {order.pickup_time}
                     </p>
                     <p className="mt-1 text-sm text-gray-400">{order.pickup_location}</p>
                     {order.notes && <p className="mt-2 text-sm text-gray-500">{order.notes}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm md:w-64">
                     <div className="rounded-lg border border-cyan-500/10 bg-black/30 p-3">
-                      <p className="text-gray-500">Total</p>
+                      <p className="text-gray-500">{t('Total')}</p>
                       <p className="mt-1 font-semibold text-cyan-300">{currencyFormatter.format(order.total_price)}</p>
                     </div>
                     <div className="rounded-lg border border-cyan-500/10 bg-black/30 p-3">
-                      <p className="text-gray-500">Deposit</p>
+                      <p className="text-gray-500">{t('Deposit')}</p>
                       <p className="mt-1 font-semibold text-white">{currencyFormatter.format(order.deposit)}</p>
                     </div>
                   </div>

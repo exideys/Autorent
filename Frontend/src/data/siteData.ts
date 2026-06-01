@@ -71,7 +71,7 @@ export const showroomHints: ShowroomHint[] = [
 
 export const howItWorksSteps: HowItWorksStep[] = [
   { step: '01', title: 'Choose & Book', desc: 'Select your preferred vehicle and dates' },
-  { step: '02', title: 'Pickup', desc: 'Meet at your chosen location' },
+  { step: '02', title: 'Pick up the car', desc: 'Meet at your chosen location' },
   { step: '03', title: 'Enjoy', desc: 'Drive with confidence and style' },
 ];
 

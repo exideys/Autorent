@@ -13,6 +13,16 @@ export const mainImage = (car: Car) => {
   return selectedImage?.image_url || fallbackImageUrl;
 };
 
+const fixedVehicleTerms = new Set(['SUV']);
+
+export const isFixedVehicleTerm = (value?: string | null) => fixedVehicleTerms.has((value || '').trim().toUpperCase());
+
+export const displayVehicleTerm = (value: string, translate: (text: string) => string) =>
+  isFixedVehicleTerm(value) ? value.trim().toUpperCase() : translate(value);
+
+export const translatableVehicleTerms = (values: ReadonlyArray<string | undefined | null>) =>
+  values.filter((value): value is string => Boolean(value && !isFixedVehicleTerm(value)));
+
 export const detailRows = (car: Car) => [
   ['Brand', car.brand],
   ['Model', car.model],

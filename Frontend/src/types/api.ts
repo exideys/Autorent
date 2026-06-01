@@ -120,6 +120,10 @@ export interface CarRecommendationResponse {
   total_matches: number;
 }
 
+export interface TranslationResponse {
+  translations: string[];
+}
+
 export interface RentalOrderCarSummary {
   id: number;
   brand: string;
