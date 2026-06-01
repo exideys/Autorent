@@ -2,7 +2,7 @@ export type PageKey =
   | 'home'
   | 'services'
   | 'showroom'
-  | 'how-it-works'
+  | 'news'
   | 'why-choose-us'
   | 'contact'
   | 'profile'

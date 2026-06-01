@@ -14,7 +14,7 @@ export const pages: PageLink[] = [
   { key: 'home', label: 'Home' },
   { key: 'services', label: 'Services' },
   { key: 'showroom', label: 'Showroom' },
-  { key: 'how-it-works', label: 'How It Works' },
+  { key: 'news', label: 'News' },
   { key: 'why-choose-us', label: 'Why Choose Us' },
   { key: 'contact', label: 'Contact' },
 ];
@@ -32,9 +32,9 @@ export const pageContent: Record<PageKey, PageContent> = {
     title: 'Virtual Showroom',
     subtitle: 'Our showroom page is dedicated only to luxury vehicle previews and selection details.',
   },
-  'how-it-works': {
-    title: 'How It Works',
-    subtitle: 'A focused guide covering every step of your AutoRent booking experience.',
+  news: {
+    title: 'AutoRent News',
+    subtitle: 'Read the latest AutoRent fleet updates, announcements, and service notes.',
   },
   'why-choose-us': {
     title: 'Why Choose AutoRent',

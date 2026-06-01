@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type CarRecommendationFilters struct {
 	MinSeats          int     `json:"min_seats,omitempty"`
 	MaxPricePerDay    float64 `json:"max_price_per_day,omitempty"`
@@ -18,22 +20,24 @@ type CarRecommendationRequest struct {
 }
 
 type RecommendedCar struct {
-	ID           int64    `json:"id"`
-	Brand        string   `json:"brand"`
-	Model        string   `json:"model"`
-	Year         int      `json:"year"`
-	CarClass     string   `json:"car_class"`
-	BodyType     string   `json:"body_type"`
-	Transmission string   `json:"transmission"`
-	FuelType     string   `json:"fuel_type"`
-	Seats        int      `json:"seats"`
-	Doors        int      `json:"doors"`
-	EngineVolume *float64 `json:"engine_volume,omitempty"`
-	Horsepower   int      `json:"horsepower"`
-	PricePerDay  float64  `json:"price_per_day"`
-	Deposit      float64  `json:"deposit"`
-	Color        string   `json:"color"`
-	Status       string   `json:"status"`
+	ID           int64      `json:"id"`
+	Brand        string     `json:"brand"`
+	Model        string     `json:"model"`
+	Year         int        `json:"year"`
+	CarClass     string     `json:"car_class"`
+	BodyType     string     `json:"body_type"`
+	Transmission string     `json:"transmission"`
+	FuelType     string     `json:"fuel_type"`
+	Seats        int        `json:"seats"`
+	Doors        int        `json:"doors"`
+	EngineVolume *float64   `json:"engine_volume,omitempty"`
+	Horsepower   int        `json:"horsepower"`
+	PricePerDay  float64    `json:"price_per_day"`
+	Deposit      float64    `json:"deposit"`
+	Color        string     `json:"color"`
+	Status       string     `json:"status"`
+	CreatedAt    time.Time  `json:"created_at"`
+	Images       []CarImage `json:"images"`
 }
 
 type CarRecommendationResponse struct {
@@ -58,6 +62,8 @@ func ToRecommendedCar(car Car) RecommendedCar {
 		PricePerDay:  car.PricePerDay,
 		Deposit:      car.Deposit,
 		Status:       car.Status,
+		CreatedAt:    car.CreatedAt,
+		Images:       car.Images,
 	}
 
 	if car.Horsepower != nil {
