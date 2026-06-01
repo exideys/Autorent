@@ -6,6 +6,8 @@ import type {
   CarInput,
   CarRecommendationResponse,
   LoginPayload,
+  NewsArticle,
+  NewsInput,
   RateUserPayload,
   RegisterPayload,
   User,
@@ -80,6 +82,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
 export const listPublicCars = () => apiRequest<Car[]>('/cars?available=true&sort=price_per_day&order=asc');
 
+export const listPublishedNews = () => apiRequest<NewsArticle[]>('/news?sort=published_at&order=desc');
+
 export const getCarRecommendation = (message: string) =>
   apiRequest<CarRecommendationResponse>('/ai/car-recommendation', {
     method: 'POST',
@@ -114,6 +118,11 @@ export const listAdminUsers = (token: string) =>
     token,
   });
 
+export const listAdminNews = (token: string) =>
+  apiRequest<NewsArticle[]>('/admin/news?sort=created_at&order=desc', {
+    token,
+  });
+
 export const rateAdminUser = (token: string, id: number, payload: RateUserPayload) =>
   apiRequest<User>(`/admin/users/${id}/rating`, {
     method: 'PATCH',
@@ -137,6 +146,26 @@ export const updateAdminCar = (token: string, id: number, payload: CarInput) =>
 
 export const deleteAdminCar = (token: string, id: number) =>
   apiRequest<void>(`/admin/cars/${id}`, {
+    method: 'DELETE',
+    token,
+  });
+
+export const createAdminNews = (token: string, payload: NewsInput) =>
+  apiRequest<NewsArticle>('/admin/news', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+export const updateAdminNews = (token: string, id: number, payload: NewsInput) =>
+  apiRequest<NewsArticle>(`/admin/news/${id}`, {
+    method: 'PUT',
+    token,
+    body: payload,
+  });
+
+export const deleteAdminNews = (token: string, id: number) =>
+  apiRequest<void>(`/admin/news/${id}`, {
     method: 'DELETE',
     token,
   });

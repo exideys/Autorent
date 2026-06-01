@@ -66,6 +66,7 @@ func main() {
 	tokenManager := auth.NewTokenManager(cfg.JWTSecret, cfg.JWTTokenTTL)
 	carRepository := repository.NewCarRepository(db)
 	userRepository := repository.NewUserRepository(db)
+	newsRepository := repository.NewNewsRepository(db)
 	var aiExtractor ai.CarFilterExtractor
 	aiExtractor, err = ai.NewGeminiExtractor(context.Background(), cfg.GeminiAPIKey, cfg.GeminiModel)
 	if err != nil {
@@ -77,11 +78,13 @@ func main() {
 	handlers.RegisterAuthRoutes(api.Group("/auth"), userRepository, tokenManager, cfg.AdminSetupToken)
 	handlers.RegisterCarRoutes(api, carRepository)
 	handlers.RegisterAIRoutes(api, carRepository, aiExtractor)
+	handlers.RegisterNewsRoutes(api, newsRepository)
 
 	adminAPI := api.Group("/admin")
 	adminAPI.Use(handlers.RequireAdmin(tokenManager))
 	handlers.RegisterAdminCarRoutes(adminAPI, carRepository)
 	handlers.RegisterAdminUserRoutes(adminAPI, userRepository)
+	handlers.RegisterAdminNewsRoutes(adminAPI, newsRepository)
 
 	// Get port from environment or default
 	port := os.Getenv("PORT")

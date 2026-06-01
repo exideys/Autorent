@@ -112,10 +112,34 @@ export interface RecommendedCar {
   deposit: number;
   color: string;
   status: string;
+  created_at?: string;
+  images?: CarImage[];
 }
 
 export interface CarRecommendationResponse {
   answer: string;
   cars: RecommendedCar[];
   total_matches: number;
+}
+
+export type NewsStatus = 'draft' | 'published';
+
+export interface NewsArticle {
+  id: number;
+  title: string;
+  summary: string;
+  content: string;
+  image_url?: string;
+  status: NewsStatus | string;
+  published_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NewsInput {
+  title: string;
+  summary: string;
+  content: string;
+  image_url?: string;
+  status: NewsStatus;
 }

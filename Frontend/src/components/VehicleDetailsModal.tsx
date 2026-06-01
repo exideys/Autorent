@@ -48,6 +48,7 @@ const VehicleDetailsModal = ({ car, onBooking, onClose }: VehicleDetailsModalPro
             <img
               src={selectedImageUrl || fallbackImageUrl}
               alt={`${car.brand} ${car.model}`}
+              referrerPolicy="no-referrer"
               className="h-72 w-full rounded-xl object-cover md:h-80"
               onError={(event) => {
                 event.currentTarget.onerror = null;
@@ -75,6 +76,7 @@ const VehicleDetailsModal = ({ car, onBooking, onClose }: VehicleDetailsModalPro
                       <img
                         src={image.image_url}
                         alt={`${car.brand} ${car.model}`}
+                        referrerPolicy="no-referrer"
                         className="h-24 w-full object-cover"
                         onError={(event) => {
                           event.currentTarget.style.opacity = '0.35';
