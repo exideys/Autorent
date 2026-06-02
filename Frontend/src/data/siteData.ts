@@ -15,6 +15,7 @@ export const pages: PageLink[] = [
   { key: 'services', label: 'Services' },
   { key: 'showroom', label: 'Showroom' },
   { key: 'news', label: 'News' },
+  { key: 'how-it-works', label: 'How It Works' },
   { key: 'why-choose-us', label: 'Why Choose Us' },
   { key: 'contact', label: 'Contact' },
 ];
@@ -35,6 +36,10 @@ export const pageContent: Record<PageKey, PageContent> = {
   news: {
     title: 'AutoRent News',
     subtitle: 'Read the latest AutoRent fleet updates, announcements, and service notes.',
+  },
+  'how-it-works': {
+    title: 'How It Works',
+    subtitle: 'Reserve your next luxury rental in three simple steps.',
   },
   'why-choose-us': {
     title: 'Why Choose AutoRent',
@@ -71,7 +76,7 @@ export const showroomHints: ShowroomHint[] = [
 
 export const howItWorksSteps: HowItWorksStep[] = [
   { step: '01', title: 'Choose & Book', desc: 'Select your preferred vehicle and dates' },
-  { step: '02', title: 'Pickup', desc: 'Meet at your chosen location' },
+  { step: '02', title: 'Pick up the car', desc: 'Meet at your chosen location' },
   { step: '03', title: 'Enjoy', desc: 'Drive with confidence and style' },
 ];
 

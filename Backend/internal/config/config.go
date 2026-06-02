@@ -18,6 +18,8 @@ type Config struct {
 	AdminSetupToken string
 	GeminiAPIKey    string
 	GeminiModel     string
+	DeepLAPIKey     string
+	DeepLAPIURL     string
 }
 
 var (
@@ -37,6 +39,8 @@ func Load() (*Config, error) {
 	adminSetupToken := getEnv("ADMIN_SETUP_TOKEN", "")
 	geminiAPIKey := getEnv("GEMINI_API_KEY", "")
 	geminiModel := getEnv("GEMINI_MODEL", "gemini-2.5-flash")
+	deepLAPIKey := getEnv("DEEPL_API_KEY", "")
+	deepLAPIURL := getEnv("DEEPL_API_URL", "https://api-free.deepl.com")
 
 	tlsConfigName, err := resolveTLSConfig(dbTLS, dbHost)
 	if err != nil {
@@ -65,6 +69,8 @@ func Load() (*Config, error) {
 		AdminSetupToken: adminSetupToken,
 		GeminiAPIKey:    geminiAPIKey,
 		GeminiModel:     geminiModel,
+		DeepLAPIKey:     deepLAPIKey,
+		DeepLAPIURL:     deepLAPIURL,
 	}, nil
 }
 

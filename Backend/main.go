@@ -13,6 +13,7 @@ import (
 	"autorent-backend/internal/handlers"
 	"autorent-backend/internal/repository"
 	"autorent-backend/internal/services"
+	"autorent-backend/internal/translation"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -30,6 +31,11 @@ func main() {
 		log.Println("GEMINI_API_KEY is not set. AI car assistant will be disabled.")
 	} else {
 		log.Printf("GEMINI_API_KEY is set. AI car assistant will be enabled using model: %s", cfg.GeminiModel)
+	}
+	if cfg.DeepLAPIKey == "" {
+		log.Println("DEEPL_API_KEY is not set. Ukrainian translation will be unavailable.")
+	} else {
+		log.Printf("DEEPL_API_KEY is set. Ukrainian translation will use endpoint: %s", cfg.DeepLAPIURL)
 	}
 
 	// Connect to database
@@ -77,18 +83,24 @@ func main() {
 		log.Printf("AI car assistant disabled: %v", err)
 		aiExtractor = &ai.UnavailableExtractor{}
 	}
+	var translator handlers.Translator
+	if cfg.DeepLAPIKey != "" {
+		translator = translation.NewDeepLTranslator(cfg.DeepLAPIKey, cfg.DeepLAPIURL)
+	}
 
 	api := r.Group("/api")
 	handlers.RegisterAuthRoutes(api.Group("/auth"), userRepository, tokenManager, cfg.AdminSetupToken)
 	handlers.RegisterCarRoutes(api, carService)
 	handlers.RegisterRentalOrderRoutes(api, rentalOrderService, tokenManager)
 	handlers.RegisterAIRoutes(api, carRepository, aiExtractor)
+	handlers.RegisterTranslationRoutes(api, translator)
 	handlers.RegisterNewsRoutes(api, newsRepository)
 
 	adminAPI := api.Group("/admin")
 	adminAPI.Use(handlers.RequireAdmin(tokenManager))
 	handlers.RegisterAdminCarRoutes(adminAPI, carService)
 	handlers.RegisterAdminUserRoutes(adminAPI, userRepository)
+	handlers.RegisterAdminRentalOrderRoutes(adminAPI, rentalOrderService)
 	handlers.RegisterAdminNewsRoutes(adminAPI, newsRepository)
 
 	// Get port from environment or default

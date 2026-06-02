@@ -1,5 +1,6 @@
 import { Edit3, Loader2, Newspaper, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useTranslation } from '../i18n/TranslationContext';
 import { ApiError, createAdminNews, deleteAdminNews, listAdminNews, updateAdminNews } from '../lib/api';
 import type { NewsArticle, NewsInput, NewsStatus } from '../types/api';
 
@@ -76,6 +77,56 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const articleTexts = useMemo(() => articles.flatMap((article) => [article.title, article.summary].filter(Boolean)), [articles]);
+  const { t } = useTranslation([
+    'Not published',
+    'Not available',
+    'Unable to load news',
+    'News article updated.',
+    'News article published.',
+    'News draft saved.',
+    'Unable to save news',
+    'Delete news article',
+    'News article deleted.',
+    'Unable to delete news',
+    'Total Articles',
+    'Published',
+    'Drafts',
+    'News Dashboard',
+    'Edit News',
+    'Publish News',
+    'Create public AutoRent updates with optional cover image links.',
+    'Cancel editing news',
+    'Title',
+    'Summary',
+    'Content',
+    'Cover Image URL',
+    'Optional',
+    'Status',
+    'Draft',
+    'Saving...',
+    'Save News',
+    'News Articles',
+    'Published articles are shown on the public News list.',
+    'Refresh',
+    'Loading news',
+    'No news yet.',
+    'Use the form to publish the first update.',
+    'Updated',
+    'Edit',
+    'Deleting...',
+    'Delete',
+    'published',
+    'draft',
+    error,
+    message,
+    ...articles.map((article) => article.status),
+    ...articleTexts,
+  ]);
+  const displayDate = (value?: string) => {
+    const formattedDate = formatDate(value);
+    return formattedDate === 'Not published' || formattedDate === 'Not available' ? t(formattedDate) : formattedDate;
+  };
 
   const loadNews = useCallback(async () => {
     setIsLoading(true);
@@ -161,7 +212,7 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
   };
 
   const handleDelete = async (article: NewsArticle) => {
-    const shouldDelete = window.confirm(`Delete "${article.title}"?`);
+    const shouldDelete = window.confirm(`${t('Delete news article')} "${article.title}"?`);
     if (!shouldDelete) {
       return;
     }
@@ -192,15 +243,15 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
     <section className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-cyan-500/20 bg-white/10 p-5">
-          <p className="text-sm text-gray-400">Total Articles</p>
+          <p className="text-sm text-gray-400">{t('Total Articles')}</p>
           <p className="mt-2 text-3xl font-bold text-white">{stats.total}</p>
         </div>
         <div className="rounded-xl border border-cyan-500/20 bg-white/10 p-5">
-          <p className="text-sm text-gray-400">Published</p>
+          <p className="text-sm text-gray-400">{t('Published')}</p>
           <p className="mt-2 text-3xl font-bold text-cyan-300">{stats.published}</p>
         </div>
         <div className="rounded-xl border border-cyan-500/20 bg-white/10 p-5">
-          <p className="text-sm text-gray-400">Drafts</p>
+          <p className="text-sm text-gray-400">{t('Drafts')}</p>
           <p className="mt-2 text-3xl font-bold text-white">{stats.drafts}</p>
         </div>
       </div>
@@ -212,7 +263,7 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
           }`}
           role={error ? 'alert' : 'status'}
         >
-          {error || message}
+          {t(error || message)}
         </div>
       )}
 
@@ -220,16 +271,16 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
         <form id="news-dashboard-form" onSubmit={handleSubmit} className="rounded-xl border border-cyan-500/20 bg-white/10 p-6">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">News Dashboard</p>
-              <h2 className="mt-1 text-2xl font-semibold text-white">{editingId ? 'Edit News' : 'Publish News'}</h2>
-              <p className="mt-1 text-sm text-gray-400">Create public AutoRent updates with optional cover image links.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">{t('News Dashboard')}</p>
+              <h2 className="mt-1 text-2xl font-semibold text-white">{editingId ? t('Edit News') : t('Publish News')}</h2>
+              <p className="mt-1 text-sm text-gray-400">{t('Create public AutoRent updates with optional cover image links.')}</p>
             </div>
             {editingId && (
               <button
                 type="button"
                 onClick={resetForm}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-500/20 text-cyan-100 transition-colors hover:bg-cyan-500/10"
-                aria-label="Cancel editing news"
+                aria-label={t('Cancel editing news')}
               >
                 <X size={18} />
               </button>
@@ -238,11 +289,11 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
 
           <div className="space-y-4">
             <label className={labelClass}>
-              <span>Title</span>
+              <span>{t('Title')}</span>
               <input value={form.title} onChange={updateField('title')} className={inputClass} required maxLength={120} />
             </label>
             <label className={labelClass}>
-              <span>Summary</span>
+              <span>{t('Summary')}</span>
               <textarea
                 value={form.summary}
                 onChange={updateField('summary')}
@@ -252,7 +303,7 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
               />
             </label>
             <label className={labelClass}>
-              <span>Content</span>
+              <span>{t('Content')}</span>
               <textarea
                 value={form.content}
                 onChange={updateField('content')}
@@ -261,17 +312,17 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
               />
             </label>
             <label className={labelClass}>
-              <span>Cover Image URL</span>
-              <input value={form.imageUrl} onChange={updateField('imageUrl')} className={inputClass} placeholder="Optional" maxLength={255} />
+              <span>{t('Cover Image URL')}</span>
+              <input value={form.imageUrl} onChange={updateField('imageUrl')} className={inputClass} placeholder={t('Optional')} maxLength={255} />
             </label>
             <label className={labelClass}>
-              <span>Status</span>
+              <span>{t('Status')}</span>
               <select value={form.status} onChange={updateField('status')} className={inputClass}>
                 <option value="published" className="bg-gray-950">
-                  Published
+                  {t('Published')}
                 </option>
                 <option value="draft" className="bg-gray-950">
-                  Draft
+                  {t('Draft')}
                 </option>
               </select>
             </label>
@@ -283,15 +334,15 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-3 text-sm font-semibold text-black transition-colors hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? <Loader2 size={17} className="animate-spin" /> : editingId ? <Save size={17} /> : <Plus size={17} />}
-            {isSaving ? 'Saving...' : editingId ? 'Save News' : 'Publish News'}
+            {isSaving ? t('Saving...') : editingId ? t('Save News') : t('Publish News')}
           </button>
         </form>
 
         <section className="rounded-xl border border-cyan-500/20 bg-white/10 p-6">
           <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold text-white">News Articles</h2>
-              <p className="mt-1 text-sm text-gray-400">Published articles are shown on the public News list.</p>
+              <h2 className="text-2xl font-semibold text-white">{t('News Articles')}</h2>
+              <p className="mt-1 text-sm text-gray-400">{t('Published articles are shown on the public News list.')}</p>
             </div>
             <button
               type="button"
@@ -300,12 +351,12 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-3 py-2 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
-              Refresh
+              {t('Refresh')}
             </button>
           </div>
 
           {isLoading ? (
-            <div className="space-y-3" aria-label="Loading news">
+            <div className="space-y-3" aria-label={t('Loading news')}>
               {[0, 1, 2].map((item) => (
                 <div key={item} className="h-28 animate-pulse rounded-xl bg-black/40" />
               ))}
@@ -313,8 +364,8 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
           ) : articles.length === 0 ? (
             <div className="rounded-xl border border-cyan-500/10 bg-black/40 py-12 text-center">
               <Newspaper size={32} className="mx-auto text-cyan-300" />
-              <p className="mt-3 text-lg font-semibold text-white">No news yet.</p>
-              <p className="mt-2 text-sm text-gray-400">Use the form to publish the first update.</p>
+              <p className="mt-3 text-lg font-semibold text-white">{t('No news yet.')}</p>
+              <p className="mt-2 text-sm text-gray-400">{t('Use the form to publish the first update.')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -322,7 +373,7 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
                 <article key={article.id} className="grid gap-4 rounded-xl border border-cyan-500/10 bg-black/35 p-4 lg:grid-cols-[8rem_1fr_auto]">
                   <img
                     src={article.image_url || fallbackImageUrl}
-                    alt={article.title}
+                    alt={t(article.title)}
                     referrerPolicy="no-referrer"
                     className="h-32 w-full rounded-lg object-cover lg:h-24 lg:w-32"
                     onError={(event) => {
@@ -332,14 +383,14 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
                   />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="break-words text-lg font-semibold text-white">{article.title}</h3>
+                      <h3 className="break-words text-lg font-semibold text-white">{t(article.title)}</h3>
                       <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-xs capitalize text-cyan-100">
-                        {article.status}
+                        {t(article.status)}
                       </span>
                     </div>
-                    <p className="mt-2 text-sm text-gray-300">{article.summary}</p>
+                    <p className="mt-2 text-sm text-gray-300">{t(article.summary)}</p>
                     <p className="mt-2 text-xs text-gray-500">
-                      Published {formatDate(article.published_at)} | Updated {formatDate(article.updated_at)}
+                      {t('Published')} {displayDate(article.published_at)} | {t('Updated')} {displayDate(article.updated_at)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 lg:flex-col lg:items-stretch">
@@ -350,7 +401,7 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
                       className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-3 py-2 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-500/10"
                     >
                       <Edit3 size={16} />
-                      Edit
+                      {t('Edit')}
                     </button>
                     <button
                       type="button"
@@ -359,7 +410,7 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
                       className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-400/30 px-3 py-2 text-sm font-semibold text-red-200 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {deletingId === article.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                      {deletingId === article.id ? 'Deleting...' : 'Delete'}
+                      {deletingId === article.id ? t('Deleting...') : t('Delete')}
                     </button>
                   </div>
                 </article>

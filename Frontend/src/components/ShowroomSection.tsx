@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { Calendar, Gauge, RefreshCw, Search, Shield, SlidersHorizontal, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { currencyFormatter, fallbackImageUrl, mainImage } from '../lib/carDisplay';
+import { useTranslation } from '../i18n/TranslationContext';
+import { currencyFormatter, displayVehicleTerm, fallbackImageUrl, mainImage, translatableVehicleTerms } from '../lib/carDisplay';
 import type { Car } from '../types/api';
 import BookingModal from './BookingModal';
 import VehicleDetailsModal from './VehicleDetailsModal';
@@ -133,9 +134,60 @@ const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCrea
     });
   }, [cars, filters]);
 
+  const { t } = useTranslation([
+    'Loading cars...',
+    'of',
+    'vehicle',
+    'vehicles',
+    'Filters',
+    'Sort showroom',
+    'Hide filters',
+    'Show filters',
+    'Search',
+    'Brand, model, color',
+    'Class',
+    'All classes',
+    'Body type',
+    'All body types',
+    'Transmission',
+    'All transmissions',
+    'Fuel',
+    'All fuel types',
+    'Sort by',
+    'Price',
+    'Year',
+    'Horsepower',
+    'Engine',
+    'Deposit',
+    'Seats',
+    'Brand',
+    'Newest',
+    'Order',
+    'Ascending',
+    'Descending',
+    'Reset',
+    'Refresh',
+    'Active',
+    'Unable to load vehicles.',
+    'No vehicles match these filters.',
+    'Reset sorting or change filters to see more cars.',
+    'seats',
+    'doors',
+    'day',
+    'Details',
+    'Booking',
+    error,
+    ...translatableVehicleTerms([
+      ...filterOptions.classes,
+      ...filterOptions.bodyTypes,
+      ...filterOptions.transmissions,
+      ...filterOptions.fuelTypes,
+      ...visibleCars.flatMap((car) => [car.car_class, car.body_type, car.transmission, car.fuel_type, car.status]),
+    ]),
+  ]);
   const vehicleCountText = isLoading
-    ? 'Loading cars...'
-    : `${visibleCars.length} of ${cars.length} vehicle${cars.length === 1 ? '' : 's'}`;
+    ? t('Loading cars...')
+    : `${visibleCars.length} ${t('of')} ${cars.length} ${cars.length === 1 ? t('vehicle') : t('vehicles')}`;
   const hasActiveFilters =
     filters.search.trim() !== '' ||
     filters.carClass !== defaultFilters.carClass ||
@@ -147,7 +199,7 @@ const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCrea
   const showroomLayoutClass = isFiltersOpen
     ? 'grid min-h-[calc(100vh-4rem)] grid-cols-1 gap-0 lg:grid-cols-[20rem_minmax(0,1fr)]'
     : 'grid min-h-[calc(100vh-4rem)] grid-cols-1 gap-0 lg:grid-cols-[5rem_minmax(0,1fr)]';
-  const filterToggleLabel = isFiltersOpen ? 'Hide filters' : 'Show filters';
+  const filterToggleLabel = isFiltersOpen ? t('Hide filters') : t('Show filters');
 
   const updateFilter = <K extends keyof FilterState>(field: K, value: FilterState[K]) => {
     setFilters((current) => ({
@@ -168,8 +220,8 @@ const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCrea
               <>
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Filters</p>
-                <h3 className="mt-1 text-xl font-semibold text-white">Sort showroom</h3>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">{t('Filters')}</p>
+                <h3 className="mt-1 text-xl font-semibold text-white">{t('Sort showroom')}</h3>
                 <p className="mt-2 text-sm text-gray-400">{vehicleCountText}</p>
               </div>
               <button
@@ -187,95 +239,95 @@ const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCrea
 
             <div id="showroom-filters-panel" className="space-y-4">
               <label className="relative block">
-                <span className="mb-2 block text-sm text-gray-300">Search</span>
+                <span className="mb-2 block text-sm text-gray-300">{t('Search')}</span>
                 <Search size={16} className="absolute left-3 top-[2.65rem] text-cyan-300" />
                 <input
                   value={filters.search}
                   onChange={(event) => updateFilter('search', event.target.value)}
                   className={`${fieldClass} pl-10`}
-                  placeholder="Brand, model, color"
+                  placeholder={t('Brand, model, color')}
                 />
               </label>
 
               <label className="block space-y-2 text-sm text-gray-300">
-                <span>Class</span>
+                <span>{t('Class')}</span>
                 <select value={filters.carClass} onChange={(event) => updateFilter('carClass', event.target.value)} className={fieldClass}>
-                  <option value="all">All classes</option>
+                  <option value="all">{t('All classes')}</option>
                   {filterOptions.classes.map((value) => (
                     <option key={value} value={value}>
-                      {value}
+                      {displayVehicleTerm(value, t)}
                     </option>
                   ))}
                 </select>
               </label>
 
               <label className="block space-y-2 text-sm text-gray-300">
-                <span>Body type</span>
+                <span>{t('Body type')}</span>
                 <select value={filters.bodyType} onChange={(event) => updateFilter('bodyType', event.target.value)} className={fieldClass}>
-                  <option value="all">All body types</option>
+                  <option value="all">{t('All body types')}</option>
                   {filterOptions.bodyTypes.map((value) => (
                     <option key={value} value={value}>
-                      {value}
+                      {displayVehicleTerm(value, t)}
                     </option>
                   ))}
                 </select>
               </label>
 
               <label className="block space-y-2 text-sm text-gray-300">
-                <span>Transmission</span>
+                <span>{t('Transmission')}</span>
                 <select
                   value={filters.transmission}
                   onChange={(event) => updateFilter('transmission', event.target.value)}
                   className={fieldClass}
                 >
-                  <option value="all">All transmissions</option>
+                  <option value="all">{t('All transmissions')}</option>
                   {filterOptions.transmissions.map((value) => (
                     <option key={value} value={value}>
-                      {value}
+                      {displayVehicleTerm(value, t)}
                     </option>
                   ))}
                 </select>
               </label>
 
               <label className="block space-y-2 text-sm text-gray-300">
-                <span>Fuel</span>
+                <span>{t('Fuel')}</span>
                 <select value={filters.fuelType} onChange={(event) => updateFilter('fuelType', event.target.value)} className={fieldClass}>
-                  <option value="all">All fuel types</option>
+                  <option value="all">{t('All fuel types')}</option>
                   {filterOptions.fuelTypes.map((value) => (
                     <option key={value} value={value}>
-                      {value}
+                      {displayVehicleTerm(value, t)}
                     </option>
                   ))}
                 </select>
               </label>
 
               <label className="block space-y-2 text-sm text-gray-300">
-                <span>Sort by</span>
+                <span>{t('Sort by')}</span>
                 <select
                   value={filters.sortBy}
                   onChange={(event) => updateFilter('sortBy', event.target.value as SortKey)}
                   className={fieldClass}
                 >
-                  <option value="price_per_day">Price</option>
-                  <option value="year">Year</option>
-                  <option value="horsepower">Horsepower</option>
-                  <option value="engine_volume">Engine</option>
-                  <option value="deposit">Deposit</option>
-                  <option value="seats">Seats</option>
-                  <option value="brand">Brand</option>
-                  <option value="created_at">Newest</option>
+                  <option value="price_per_day">{t('Price')}</option>
+                  <option value="year">{t('Year')}</option>
+                  <option value="horsepower">{t('Horsepower')}</option>
+                  <option value="engine_volume">{t('Engine')}</option>
+                  <option value="deposit">{t('Deposit')}</option>
+                  <option value="seats">{t('Seats')}</option>
+                  <option value="brand">{t('Brand')}</option>
+                  <option value="created_at">{t('Newest')}</option>
                 </select>
               </label>
 
               <label className="block space-y-2 text-sm text-gray-300">
-                <span>Order</span>
+                <span>{t('Order')}</span>
                 <select
                   value={filters.sortOrder}
                   onChange={(event) => updateFilter('sortOrder', event.target.value as SortOrder)}
                   className={fieldClass}
                 >
-                  <option value="asc">Ascending</option>
-                  <option value="desc">Descending</option>
+                  <option value="asc">{t('Ascending')}</option>
+                  <option value="desc">{t('Descending')}</option>
                 </select>
               </label>
 
@@ -285,7 +337,7 @@ const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCrea
                   onClick={() => setFilters(defaultFilters)}
                   className="rounded-lg border border-cyan-500/30 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-500/10 transition-colors"
                 >
-                  Reset
+                  {t('Reset')}
                 </button>
                 <button
                   type="button"
@@ -294,7 +346,7 @@ const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCrea
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-500 px-3 py-2 text-sm font-semibold text-black hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
                 >
                   <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
-                  Refresh
+                  {t('Refresh')}
                 </button>
               </div>
             </div>
@@ -302,11 +354,11 @@ const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCrea
             ) : (
               <div className="flex items-center justify-between gap-3 lg:flex-col lg:justify-start">
                 <div className="min-w-0 lg:hidden">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Filters</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">{t('Filters')}</p>
                   <p className="mt-2 text-xs text-gray-400 lg:hidden">{vehicleCountText}</p>
                   {hasActiveFilters && (
                     <span className="mt-2 inline-flex rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-cyan-200">
-                      Active
+                      {t('Active')}
                     </span>
                   )}
                 </div>
@@ -329,8 +381,8 @@ const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCrea
           <div className="min-w-0 px-4 py-5 lg:px-8">
             {error ? (
               <div className="text-center py-10 bg-red-500/10 border border-red-400/20 rounded-xl">
-                <p className="text-xl text-red-100">Unable to load vehicles.</p>
-                <p className="text-sm text-red-200/80 mt-2">{error}</p>
+                <p className="text-xl text-red-100">{t('Unable to load vehicles.')}</p>
+                <p className="text-sm text-red-200/80 mt-2">{t(error)}</p>
               </div>
             ) : isLoading ? (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" aria-label="Loading vehicles">
@@ -340,8 +392,8 @@ const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCrea
               </div>
             ) : visibleCars.length === 0 ? (
               <div className="text-center py-10 bg-black/40 border border-cyan-500/10 rounded-xl">
-                <p className="text-xl text-gray-300">No vehicles match these filters.</p>
-                <p className="text-sm text-gray-400 mt-2">Reset sorting or change filters to see more cars.</p>
+                <p className="text-xl text-gray-300">{t('No vehicles match these filters.')}</p>
+                <p className="text-sm text-gray-400 mt-2">{t('Reset sorting or change filters to see more cars.')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -364,10 +416,10 @@ const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCrea
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                       <span className="absolute top-3 left-3 text-xs px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-300/30 text-cyan-100">
-                        {car.car_class}
+                        {displayVehicleTerm(car.car_class, t)}
                       </span>
                       <span className="absolute top-3 right-3 text-xs px-3 py-1 rounded-full bg-black/60 border border-white/20 text-gray-100 capitalize">
-                        {car.status}
+                        {displayVehicleTerm(car.status, t)}
                       </span>
                     </div>
                     <div className="p-5">
@@ -378,41 +430,45 @@ const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCrea
                         <div className="flex items-center gap-2">
                           <Calendar size={15} className="text-cyan-300" />
                           <span>
-                            {car.year} | {car.body_type}
+                            {car.year} | {displayVehicleTerm(car.body_type, t)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Users size={15} className="text-cyan-300" />
                           <span>
-                            {car.seats} seats | {car.doors} doors
+                            {car.seats} {t('seats')} | {car.doors} {t('doors')}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Gauge size={15} className="text-cyan-300" />
                           <span>
-                            {car.transmission} | {car.fuel_type}
+                            {displayVehicleTerm(car.transmission, t)} | {displayVehicleTerm(car.fuel_type, t)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Shield size={15} className="text-cyan-300" />
-                          <span>Deposit {currencyFormatter.format(car.deposit)}</span>
+                          <span>
+                            {t('Deposit')} {currencyFormatter.format(car.deposit)}
+                          </span>
                         </div>
                       </div>
-                      <p className="font-semibold text-cyan-300">{currencyFormatter.format(car.price_per_day)} / day</p>
+                      <p className="font-semibold text-cyan-300">
+                        {currencyFormatter.format(car.price_per_day)} / {t('day')}
+                      </p>
                       <div className="mt-4 grid grid-cols-2 gap-3">
                         <button
                           type="button"
                           onClick={() => setSelectedCar(car)}
                           className="rounded-lg border border-cyan-500/30 px-4 py-2 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-500/10"
                         >
-                          Details
+                          {t('Details')}
                         </button>
                         <button
                           type="button"
                           onClick={() => setBookingCar(car)}
                           className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-cyan-400"
                         >
-                          Booking
+                          {t('Booking')}
                         </button>
                       </div>
                     </div>

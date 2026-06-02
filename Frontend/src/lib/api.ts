@@ -12,6 +12,7 @@ import type {
   RegisterPayload,
   RentalOrder,
   RentalOrderInput,
+  TranslationResponse,
   User,
 } from '../types/api';
 
@@ -90,6 +91,16 @@ export const getCarRecommendation = (message: string) =>
   apiRequest<CarRecommendationResponse>('/ai/car-recommendation', {
     method: 'POST',
     body: { message },
+    rawResponse: true,
+  });
+
+export const translateTexts = (texts: string[], targetLang = 'UK') =>
+  apiRequest<TranslationResponse>('/translate', {
+    method: 'POST',
+    body: {
+      target_lang: targetLang,
+      texts,
+    },
     rawResponse: true,
   });
 

@@ -122,6 +122,49 @@ export interface CarRecommendationResponse {
   total_matches: number;
 }
 
+export interface TranslationResponse {
+  translations: string[];
+}
+
+export interface RentalOrderCarSummary {
+  id: number;
+  brand: string;
+  model: string;
+  year: number;
+  price_per_day: number;
+  deposit: number;
+  status: string;
+  image_url?: string;
+}
+
+export interface RentalOrder {
+  id: number;
+  user_id: number;
+  car_id: number;
+  start_date: string;
+  end_date: string;
+  pickup_location: string;
+  pickup_time: string;
+  phone: string;
+  notes: string;
+  total_price: number;
+  deposit: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  car: RentalOrderCarSummary;
+}
+
+export interface RentalOrderInput {
+  car_id: number;
+  start_date: string;
+  end_date: string;
+  pickup_location: string;
+  pickup_time: string;
+  phone: string;
+  notes?: string;
+}
+
 export type NewsStatus = 'draft' | 'published';
 
 export interface NewsArticle {

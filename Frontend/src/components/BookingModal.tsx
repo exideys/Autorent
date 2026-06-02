@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Calendar, Clock, MapPin, Phone, X } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from '../i18n/TranslationContext';
 import { currencyFormatter } from '../lib/carDisplay';
 import { createRentalOrder } from '../lib/api';
 import type { Car } from '../types/api';
@@ -38,6 +39,28 @@ const BookingModal = ({ car, token, onCreated, onClose }: BookingModalProps) => 
   const [error, setError] = useState('');
   const [isCreated, setIsCreated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useTranslation([
+    'Booking',
+    'Daily price',
+    'Deposit',
+    'Phone',
+    'Pickup location',
+    'Hotel, airport, office',
+    'Pickup date',
+    'Return date',
+    'Pickup time',
+    'Notes',
+    'Delivery details, child seat, route notes',
+    'Please sign in to book a vehicle.',
+    'Please fill in all booking fields.',
+    'Return date cannot be before pickup date.',
+    'Unable to create booking.',
+    'Booking created. You can view it in your profile.',
+    'Creating Booking...',
+    'Booking Created',
+    'Create Booking',
+    error,
+  ]);
 
   const updateField = <K extends keyof BookingFormState>(field: K, value: BookingFormState[K]) => {
     setForm((current) => ({
@@ -102,7 +125,7 @@ const BookingModal = ({ car, token, onCreated, onClose }: BookingModalProps) => 
       >
         <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-cyan-500/20 bg-gray-950/95 p-5 backdrop-blur">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">Booking</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">{t('Booking')}</p>
             <h3 className="mt-1 text-2xl font-bold text-white">
               {car.brand} {car.model}
             </h3>
@@ -120,11 +143,11 @@ const BookingModal = ({ car, token, onCreated, onClose }: BookingModalProps) => 
         <div className="space-y-5 p-5">
           <div className="grid gap-3 rounded-xl border border-cyan-500/10 bg-black/35 p-4 sm:grid-cols-2">
             <div>
-              <p className="text-sm text-gray-400">Daily price</p>
+              <p className="text-sm text-gray-400">{t('Daily price')}</p>
               <p className="mt-1 text-xl font-bold text-cyan-300">{currencyFormatter.format(car.price_per_day)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-400">Deposit</p>
+              <p className="text-sm text-gray-400">{t('Deposit')}</p>
               <p className="mt-1 text-xl font-bold text-white">{currencyFormatter.format(car.deposit)}</p>
             </div>
           </div>
@@ -133,62 +156,62 @@ const BookingModal = ({ car, token, onCreated, onClose }: BookingModalProps) => 
             <label className="block space-y-2 text-sm text-gray-300">
               <span className="flex items-center gap-2">
                 <Phone size={16} className="text-cyan-300" />
-                Phone
+                {t('Phone')}
               </span>
               <input value={form.phone} onChange={(event) => updateField('phone', event.target.value)} className={fieldClass} placeholder="+1 555 123 4567" />
             </label>
             <label className="block space-y-2 text-sm text-gray-300">
               <span className="flex items-center gap-2">
                 <MapPin size={16} className="text-cyan-300" />
-                Pickup location
+                {t('Pickup location')}
               </span>
               <input
                 value={form.pickupLocation}
                 onChange={(event) => updateField('pickupLocation', event.target.value)}
                 className={fieldClass}
-                placeholder="Hotel, airport, office"
+                placeholder={t('Hotel, airport, office')}
               />
             </label>
             <label className="block space-y-2 text-sm text-gray-300">
               <span className="flex items-center gap-2">
                 <Calendar size={16} className="text-cyan-300" />
-                Pickup date
+                {t('Pickup date')}
               </span>
               <input type="date" value={form.pickupDate} onChange={(event) => updateField('pickupDate', event.target.value)} className={fieldClass} />
             </label>
             <label className="block space-y-2 text-sm text-gray-300">
               <span className="flex items-center gap-2">
                 <Calendar size={16} className="text-cyan-300" />
-                Return date
+                {t('Return date')}
               </span>
               <input type="date" value={form.returnDate} onChange={(event) => updateField('returnDate', event.target.value)} className={fieldClass} />
             </label>
             <label className="block space-y-2 text-sm text-gray-300">
               <span className="flex items-center gap-2">
                 <Clock size={16} className="text-cyan-300" />
-                Pickup time
+                {t('Pickup time')}
               </span>
               <input type="time" value={form.pickupTime} onChange={(event) => updateField('pickupTime', event.target.value)} className={fieldClass} />
             </label>
             <label className="block space-y-2 text-sm text-gray-300 sm:col-span-2">
-              <span>Notes</span>
+              <span>{t('Notes')}</span>
               <textarea
                 value={form.notes}
                 onChange={(event) => updateField('notes', event.target.value)}
                 className="min-h-24 w-full resize-y rounded-lg border border-cyan-500/25 bg-black/60 px-3 py-3 text-sm text-white placeholder-gray-500 transition-colors focus:border-cyan-300 focus:outline-none"
-                placeholder="Delivery details, child seat, route notes"
+                placeholder={t('Delivery details, child seat, route notes')}
               />
             </label>
           </div>
 
           {error && (
             <p className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200" role="alert">
-              {error}
+              {t(error)}
             </p>
           )}
           {isCreated && (
             <p className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-100">
-              Booking created. You can view it in your profile.
+              {t('Booking created. You can view it in your profile.')}
             </p>
           )}
 
@@ -198,7 +221,7 @@ const BookingModal = ({ car, token, onCreated, onClose }: BookingModalProps) => 
             disabled={isSubmitting || isCreated}
             className="w-full rounded-lg bg-gradient-to-r from-cyan-500 to-violet-600 px-5 py-3 font-semibold text-white shadow-lg shadow-cyan-500/20 transition-colors hover:from-cyan-600 hover:to-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? 'Creating Booking...' : isCreated ? 'Booking Created' : 'Create Booking'}
+            {isSubmitting ? t('Creating Booking...') : isCreated ? t('Booking Created') : t('Create Booking')}
           </button>
         </div>
       </motion.div>

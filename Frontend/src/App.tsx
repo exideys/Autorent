@@ -6,23 +6,28 @@ import ContactSection from './components/ContactSection';
 import CtaSection from './components/CtaSection';
 import Footer from './components/Footer';
 import HeroSection from './components/HeroSection';
+import HowItWorksSection from './components/HowItWorksSection';
+import LanguageToggle from './components/LanguageToggle';
 import Navbar from './components/Navbar';
 import NewsListSection from './components/NewsListSection';
 import PopularCarsSection from './components/PopularCarsSection';
 import ProfilePage from './components/ProfilePage';
 import ServicesSection from './components/ServicesSection';
 import ShowroomSection from './components/ShowroomSection';
+import TranslationNotice from './components/TranslationNotice';
 import WhyChooseUsSection from './components/WhyChooseUsSection';
 import {
   benefits,
   contactInfo,
+  howItWorksSteps,
   pageContent,
   pages,
   services,
 } from './data/siteData';
+import { useTranslation } from './i18n/TranslationContext';
 import { getCurrentUser, listPublicCars, listPublishedNews } from './lib/api';
 import type { AuthResponse, Car, NewsArticle } from './types/api';
-import type { PageKey } from './types/site';
+import type { BenefitItem, HowItWorksStep, PageKey, ServiceItem } from './types/site';
 
 const authStorageKey = 'autorent.auth';
 
@@ -79,6 +84,34 @@ const App = () => {
   const navPages = useMemo(
     () => (user?.role === 'admin' ? [...pages, { key: 'admin' as PageKey, label: 'Admin' }] : pages),
     [user?.role],
+  );
+  const appTexts = useMemo(
+    () => [
+      ...navPages.map((page) => page.label),
+      ...Object.values(pageContent).flatMap((content) => [content.title, content.subtitle]),
+      ...services.flatMap((service) => [service.title, service.desc]),
+      ...howItWorksSteps.flatMap((step) => [step.title, step.desc]),
+      ...benefits.flatMap((benefit) => [benefit.title, benefit.desc]),
+      'View Showroom',
+    ],
+    [navPages],
+  );
+  const { t } = useTranslation(appTexts);
+  const translatedNavPages = useMemo(
+    () => navPages.map((page) => ({ ...page, label: t(page.label) })),
+    [navPages, t],
+  );
+  const translatedServices = useMemo<ServiceItem[]>(
+    () => services.map((service) => ({ ...service, title: t(service.title), desc: t(service.desc) })),
+    [t],
+  );
+  const translatedHowItWorksSteps = useMemo<HowItWorksStep[]>(
+    () => howItWorksSteps.map((step) => ({ ...step, title: t(step.title), desc: t(step.desc) })),
+    [t],
+  );
+  const translatedBenefits = useMemo<BenefitItem[]>(
+    () => benefits.map((benefit) => ({ ...benefit, title: t(benefit.title), desc: t(benefit.desc) })),
+    [t],
   );
 
   const loadCars = useCallback(async () => {
@@ -184,22 +217,26 @@ const App = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 text-white overflow-x-hidden">
       <Navbar
-        pages={navPages}
+        pages={translatedNavPages}
         activePage={activePage}
         isMenuOpen={isMenuOpen}
         onToggleMenu={() => setIsMenuOpen((current) => !current)}
         onNavigate={handleNavigate}
         actions={
-          <AuthMenu
-            user={user}
-            isSessionLoading={isSessionLoading}
-            onAuthenticated={handleAuthenticated}
-            onLogout={handleLogout}
-            onAdminClick={() => handleNavigate('admin')}
-            onProfileClick={() => handleNavigate('profile')}
-          />
+          <>
+            <LanguageToggle />
+            <AuthMenu
+              user={user}
+              isSessionLoading={isSessionLoading}
+              onAuthenticated={handleAuthenticated}
+              onLogout={handleLogout}
+              onAdminClick={() => handleNavigate('admin')}
+              onProfileClick={() => handleNavigate('profile')}
+            />
+          </>
         }
       />
+      <TranslationNotice />
 
       {isAdminPage && auth?.token && user?.role === 'admin' ? (
         <AdminDashboard token={auth.token} onInventoryChanged={loadCars} onNewsChanged={loadNews} onUnauthorized={handleLogout} />
@@ -215,15 +252,18 @@ const App = () => {
         <>
           {isHome && (
             <HeroSection
-              content={pageContent.home}
-              buttonText="View Showroom"
+              content={{
+                title: t(pageContent.home.title),
+                subtitle: t(pageContent.home.subtitle),
+              }}
+              buttonText={t('View Showroom')}
               onButtonClick={() => handleNavigate('showroom')}
               isHome
             />
           )}
 
           <div className={isHome ? '' : 'pt-24'}>
-            {(isHome || activePage === 'services') && <ServicesSection items={services} />}
+            {(isHome || activePage === 'services') && <ServicesSection items={translatedServices} />}
 
             {isHome && <AICarAssistant />}
 
@@ -253,7 +293,9 @@ const App = () => {
 
             {isNewsPage && <NewsListSection articles={news} isLoading={isNewsLoading} error={newsError} onRetry={loadNews} />}
 
-            {(isHome || activePage === 'why-choose-us') && <WhyChooseUsSection items={benefits} />}
+            {(isHome || activePage === 'how-it-works') && <HowItWorksSection items={translatedHowItWorksSteps} />}
+
+            {(isHome || activePage === 'why-choose-us') && <WhyChooseUsSection items={translatedBenefits} />}
 
             {activePage === 'contact' && <ContactSection contact={contactInfo} />}
 

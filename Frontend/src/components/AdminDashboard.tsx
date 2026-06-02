@@ -1,5 +1,7 @@
 import { Car as CarIcon, Edit3, Newspaper, Plus, RefreshCw, Save, Star, Trash2, Users, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useTranslation } from '../i18n/TranslationContext';
+import { displayVehicleTerm, translatableVehicleTerms } from '../lib/carDisplay';
 import { ApiError, createAdminCar, deleteAdminCar, listAdminCars, listAdminUsers, rateAdminUser, updateAdminCar } from '../lib/api';
 import type { Car, CarInput, User } from '../types/api';
 import AdminNewsDashboard from './AdminNewsDashboard';
@@ -149,6 +151,81 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const { t } = useTranslation([
+    'Not available',
+    'Admin',
+    'Fleet Dashboard',
+    'Manage the live vehicle inventory served from the existing AutoRent backend.',
+    'Refresh',
+    'Total Vehicles',
+    'Available',
+    'Average Daily Price',
+    'Status Breakdown',
+    'No vehicles yet.',
+    'Customers',
+    'Client ratings',
+    'Leave a rating for registered customers. New ratings update their average score.',
+    'client',
+    'clients',
+    'No registered clients yet.',
+    'Rating',
+    'Count',
+    'Joined',
+    'Rate',
+    'Customer rating must be between 1 and 5.',
+    'Rating added.',
+    'Unable to rate customer',
+    'Vehicle updated.',
+    'Vehicle created.',
+    'Vehicle deleted.',
+    'Unable to save vehicle',
+    'Unable to delete vehicle',
+    'Delete',
+    'Edit Vehicle',
+    'Add Vehicle',
+    'All required fields map directly to the backend car payload.',
+    'Brand',
+    'Model',
+    'Year',
+    'Car Class',
+    'Body Type',
+    'Transmission',
+    'Fuel Type',
+    'Status',
+    'Seats',
+    'Doors',
+    'Engine Volume',
+    'Horsepower',
+    'Price Per Day',
+    'Deposit',
+    'Color',
+    'Image URLs',
+    'Optional',
+    'One URL per line. The first URL becomes the main image.',
+    'Saving...',
+    'Save Changes',
+    'Create Vehicle',
+    'Inventory',
+    'Create, edit, and delete cars from the admin API.',
+    'No cars in inventory.',
+    'Use the form to add the first vehicle.',
+    'seats',
+    'doors',
+    'day',
+    'Edit',
+    'Cancel editing',
+    'Fleet',
+    'News',
+    error,
+    message,
+    ...statusOptions,
+    ...translatableVehicleTerms(cars.flatMap((car) => [car.status, car.car_class, car.body_type, car.transmission, car.fuel_type])),
+    ...customers.map((customer) => customer.status || 'unknown'),
+  ]);
+  const displayDate = (value: string) => {
+    const formattedDate = formatDate(value);
+    return formattedDate === 'Not available' ? t('Not available') : formattedDate;
+  };
 
   const loadCars = useCallback(async () => {
     setIsLoading(true);
@@ -260,7 +337,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
         ...current,
         [customer.id]: '5',
       }));
-      setMessage(`Rating added for ${updatedCustomer.name || updatedCustomer.email}.`);
+      setMessage('Rating added.');
     } catch (rateError) {
       setError(rateError instanceof Error ? rateError.message : 'Unable to rate customer');
       if (rateError instanceof ApiError && rateError.status === 401) {
@@ -307,7 +384,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
   };
 
   const handleDelete = async (car: Car) => {
-    const shouldDelete = window.confirm(`Delete ${car.brand} ${car.model}?`);
+    const shouldDelete = window.confirm(`${t('Delete')} ${car.brand} ${car.model}?`);
     if (!shouldDelete) {
       return;
     }
@@ -333,10 +410,10 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-300">Admin</p>
-            <h1 className="mt-2 text-4xl font-bold text-white">Fleet Dashboard</h1>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-300">{t('Admin')}</p>
+            <h1 className="mt-2 text-4xl font-bold text-white">{t('Fleet Dashboard')}</h1>
             <p className="mt-3 max-w-2xl text-gray-300">
-              Manage the live vehicle inventory served from the existing AutoRent backend.
+              {t('Manage the live vehicle inventory served from the existing AutoRent backend.')}
             </p>
           </div>
           <button
@@ -346,7 +423,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
           >
             <RefreshCw size={16} className={isLoading || isCustomersLoading ? 'animate-spin' : ''} />
-            Refresh
+            {t('Refresh')}
           </button>
         </div>
 
@@ -359,7 +436,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
             }`}
           >
             <CarIcon size={16} />
-            Fleet
+            {t('Fleet')}
           </button>
           <button
             type="button"
@@ -369,7 +446,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
             }`}
           >
             <Newspaper size={16} />
-            News
+            {t('News')}
           </button>
         </div>
 
@@ -379,31 +456,31 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
           <>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-cyan-500/20 bg-white/10 p-5">
-            <p className="text-sm text-gray-400">Total Vehicles</p>
+            <p className="text-sm text-gray-400">{t('Total Vehicles')}</p>
             <p className="mt-2 text-3xl font-bold text-white">{stats.total}</p>
           </div>
           <div className="rounded-xl border border-cyan-500/20 bg-white/10 p-5">
-            <p className="text-sm text-gray-400">Available</p>
+            <p className="text-sm text-gray-400">{t('Available')}</p>
             <p className="mt-2 text-3xl font-bold text-cyan-300">{stats.available}</p>
           </div>
           <div className="rounded-xl border border-cyan-500/20 bg-white/10 p-5">
-            <p className="text-sm text-gray-400">Average Daily Price</p>
+            <p className="text-sm text-gray-400">{t('Average Daily Price')}</p>
             <p className="mt-2 text-3xl font-bold text-white">{currencyFormatter.format(stats.averagePrice)}</p>
           </div>
         </div>
 
         <div className="rounded-xl border border-cyan-500/20 bg-black/30 p-5">
-          <p className="mb-3 text-sm font-semibold text-gray-300">Status Breakdown</p>
+          <p className="mb-3 text-sm font-semibold text-gray-300">{t('Status Breakdown')}</p>
           <div className="flex flex-wrap gap-2">
             {Object.entries(stats.statuses).length === 0 ? (
-              <span className="text-sm text-gray-500">No vehicles yet.</span>
+              <span className="text-sm text-gray-500">{t('No vehicles yet.')}</span>
             ) : (
               Object.entries(stats.statuses).map(([status, count]) => (
                 <span
                   key={status}
                   className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-sm capitalize text-cyan-100"
                 >
-                  {status}: {count}
+                  {t(status)}: {count}
                 </span>
               ))
             )}
@@ -413,13 +490,15 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
         <section className="rounded-xl border border-cyan-500/20 bg-white/10 p-6">
           <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">Customers</p>
-              <h2 className="mt-1 text-2xl font-semibold text-white">Client ratings</h2>
-              <p className="mt-1 text-sm text-gray-400">Leave a rating for registered customers. New ratings update their average score.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">{t('Customers')}</p>
+              <h2 className="mt-1 text-2xl font-semibold text-white">{t('Client ratings')}</h2>
+              <p className="mt-1 text-sm text-gray-400">
+                {t('Leave a rating for registered customers. New ratings update their average score.')}
+              </p>
             </div>
             <span className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-sm text-cyan-100">
               <Users size={16} />
-              {customers.length} client{customers.length === 1 ? '' : 's'}
+              {customers.length} {customers.length === 1 ? t('client') : t('clients')}
             </span>
           </div>
 
@@ -431,7 +510,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
             </div>
           ) : customers.length === 0 ? (
             <div className="rounded-xl border border-cyan-500/10 bg-black/35 px-4 py-8 text-center text-gray-300">
-              No registered clients yet.
+              {t('No registered clients yet.')}
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -443,14 +522,14 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
                       <p className="mt-1 break-words text-sm text-gray-400">{customer.email}</p>
                     </div>
                     <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-xs capitalize text-cyan-100">
-                      {customer.status || 'unknown'}
+                      {t(customer.status || 'unknown')}
                     </span>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded-lg border border-cyan-500/10 bg-black/30 p-3">
                       <label className="block text-gray-500" htmlFor={`customer-rating-${customer.id}`}>
-                        Rating
+                        {t('Rating')}
                       </label>
                       <select
                         id={`customer-rating-${customer.id}`}
@@ -467,12 +546,14 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
                       </select>
                     </div>
                     <div className="rounded-lg border border-cyan-500/10 bg-black/30 p-3">
-                      <p className="text-gray-500">Count</p>
+                      <p className="text-gray-500">{t('Count')}</p>
                       <p className="mt-1 font-semibold text-white">{customer.rating_count || 0}</p>
                     </div>
                   </div>
 
-                  <p className="mt-3 text-xs text-gray-500">Joined {formatDate(customer.created_at)}</p>
+                  <p className="mt-3 text-xs text-gray-500">
+                    {t('Joined')} {displayDate(customer.created_at)}
+                  </p>
 
                   <div className="mt-4">
                     <button
@@ -481,7 +562,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
                       className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-3 py-2 text-sm font-semibold text-black transition-colors hover:bg-cyan-400"
                     >
                       <Star size={16} />
-                      Rate
+                      {t('Rate')}
                     </button>
                   </div>
                 </article>
@@ -497,7 +578,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
             }`}
             role={error ? 'alert' : 'status'}
           >
-            {error || message}
+            {t(error || message)}
           </div>
         )}
 
@@ -505,15 +586,15 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
           <form onSubmit={handleSubmit} className="rounded-xl border border-cyan-500/20 bg-white/10 p-6">
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-semibold text-white">{editingId ? 'Edit Vehicle' : 'Add Vehicle'}</h2>
-                <p className="mt-1 text-sm text-gray-400">All required fields map directly to the backend car payload.</p>
+                <h2 className="text-2xl font-semibold text-white">{editingId ? t('Edit Vehicle') : t('Add Vehicle')}</h2>
+                <p className="mt-1 text-sm text-gray-400">{t('All required fields map directly to the backend car payload.')}</p>
               </div>
               {editingId && (
                 <button
                   type="button"
                   onClick={resetForm}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-500/20 text-cyan-100 hover:bg-cyan-500/10 transition-colors"
-                  aria-label="Cancel editing"
+                  aria-label={t('Cancel editing')}
                 >
                   <X size={18} />
                 </button>
@@ -522,27 +603,27 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className={labelClass}>
-                <span>Brand</span>
+                <span>{t('Brand')}</span>
                 <input value={form.brand} onChange={updateField('brand')} className={inputClass} required maxLength={50} />
               </label>
               <label className={labelClass}>
-                <span>Model</span>
+                <span>{t('Model')}</span>
                 <input value={form.model} onChange={updateField('model')} className={inputClass} required maxLength={50} />
               </label>
               <label className={labelClass}>
-                <span>Year</span>
+                <span>{t('Year')}</span>
                 <input type="number" value={form.year} onChange={updateField('year')} className={inputClass} required min={1900} />
               </label>
               <label className={labelClass}>
-                <span>Car Class</span>
+                <span>{t('Car Class')}</span>
                 <input value={form.carClass} onChange={updateField('carClass')} className={inputClass} required maxLength={50} />
               </label>
               <label className={labelClass}>
-                <span>Body Type</span>
+                <span>{t('Body Type')}</span>
                 <input value={form.bodyType} onChange={updateField('bodyType')} className={inputClass} required maxLength={50} />
               </label>
               <label className={labelClass}>
-                <span>Transmission</span>
+                <span>{t('Transmission')}</span>
                 <input
                   value={form.transmission}
                   onChange={updateField('transmission')}
@@ -552,50 +633,50 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
                 />
               </label>
               <label className={labelClass}>
-                <span>Fuel Type</span>
+                <span>{t('Fuel Type')}</span>
                 <input value={form.fuelType} onChange={updateField('fuelType')} className={inputClass} required maxLength={30} />
               </label>
               <label className={labelClass}>
-                <span>Status</span>
+                <span>{t('Status')}</span>
                 <select value={form.status} onChange={updateField('status')} className={inputClass}>
                   {statusOptions.map((status) => (
                     <option key={status} value={status} className="bg-gray-950">
-                      {status}
+                      {t(status)}
                     </option>
                   ))}
                 </select>
               </label>
               <label className={labelClass}>
-                <span>Seats</span>
+                <span>{t('Seats')}</span>
                 <input type="number" value={form.seats} onChange={updateField('seats')} className={inputClass} required min={1} />
               </label>
               <label className={labelClass}>
-                <span>Doors</span>
+                <span>{t('Doors')}</span>
                 <input type="number" value={form.doors} onChange={updateField('doors')} className={inputClass} required min={1} />
               </label>
               <label className={labelClass}>
-                <span>Engine Volume</span>
+                <span>{t('Engine Volume')}</span>
                 <input
                   type="number"
                   step="0.1"
                   value={form.engineVolume}
                   onChange={updateField('engineVolume')}
                   className={inputClass}
-                  placeholder="Optional"
+                  placeholder={t('Optional')}
                 />
               </label>
               <label className={labelClass}>
-                <span>Horsepower</span>
+                <span>{t('Horsepower')}</span>
                 <input
                   type="number"
                   value={form.horsepower}
                   onChange={updateField('horsepower')}
                   className={inputClass}
-                  placeholder="Optional"
+                  placeholder={t('Optional')}
                 />
               </label>
               <label className={labelClass}>
-                <span>Price Per Day</span>
+                <span>{t('Price Per Day')}</span>
                 <input
                   type="number"
                   step="0.01"
@@ -607,7 +688,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
                 />
               </label>
               <label className={labelClass}>
-                <span>Deposit</span>
+                <span>{t('Deposit')}</span>
                 <input
                   type="number"
                   step="0.01"
@@ -619,16 +700,16 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
                 />
               </label>
               <label className={`${labelClass} md:col-span-2`}>
-                <span>Color</span>
-                <input value={form.color} onChange={updateField('color')} className={inputClass} maxLength={30} placeholder="Optional" />
+                <span>{t('Color')}</span>
+                <input value={form.color} onChange={updateField('color')} className={inputClass} maxLength={30} placeholder={t('Optional')} />
               </label>
               <label className={`${labelClass} md:col-span-2`}>
-                <span>Image URLs</span>
+                <span>{t('Image URLs')}</span>
                 <textarea
                   value={form.imageUrls}
                   onChange={updateField('imageUrls')}
                   className={`${inputClass} min-h-28 resize-y`}
-                  placeholder="One URL per line. The first URL becomes the main image."
+                  placeholder={t('One URL per line. The first URL becomes the main image.')}
                 />
               </label>
             </div>
@@ -639,15 +720,15 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
               className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-3 text-sm font-semibold text-black hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
             >
               {editingId ? <Save size={17} /> : <Plus size={17} />}
-              {isSaving ? 'Saving...' : editingId ? 'Save Changes' : 'Create Vehicle'}
+              {isSaving ? t('Saving...') : editingId ? t('Save Changes') : t('Create Vehicle')}
             </button>
           </form>
 
           <section className="rounded-xl border border-cyan-500/20 bg-white/10 p-6">
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-semibold text-white">Inventory</h2>
-                <p className="mt-1 text-sm text-gray-400">Create, edit, and delete cars from the admin API.</p>
+                <h2 className="text-2xl font-semibold text-white">{t('Inventory')}</h2>
+                <p className="mt-1 text-sm text-gray-400">{t('Create, edit, and delete cars from the admin API.')}</p>
               </div>
             </div>
 
@@ -659,8 +740,8 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
               </div>
             ) : cars.length === 0 ? (
               <div className="rounded-xl border border-cyan-500/10 bg-black/40 py-12 text-center">
-                <p className="text-lg font-semibold text-white">No cars in inventory.</p>
-                <p className="mt-2 text-sm text-gray-400">Use the form to add the first vehicle.</p>
+                <p className="text-lg font-semibold text-white">{t('No cars in inventory.')}</p>
+                <p className="mt-2 text-sm text-gray-400">{t('Use the form to add the first vehicle.')}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -682,16 +763,19 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
                           {car.brand} {car.model}
                         </h3>
                         <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-xs text-cyan-100 capitalize">
-                          {car.status}
+                          {displayVehicleTerm(car.status, t)}
                         </span>
                       </div>
                       <p className="mt-2 text-sm text-gray-300">
-                        {car.year} · {car.car_class} · {car.body_type} · {car.transmission} · {car.fuel_type}
+                        {car.year} | {displayVehicleTerm(car.car_class, t)} | {displayVehicleTerm(car.body_type, t)} |{' '}
+                        {displayVehicleTerm(car.transmission, t)} | {displayVehicleTerm(car.fuel_type, t)}
                       </p>
                       <p className="mt-1 text-sm text-gray-400">
-                        {car.seats} seats · {car.doors} doors · Deposit {currencyFormatter.format(car.deposit)}
+                        {car.seats} {t('seats')} | {car.doors} {t('doors')} | {t('Deposit')} {currencyFormatter.format(car.deposit)}
                       </p>
-                      <p className="mt-2 font-semibold text-cyan-300">{currencyFormatter.format(car.price_per_day)} / day</p>
+                      <p className="mt-2 font-semibold text-cyan-300">
+                        {currencyFormatter.format(car.price_per_day)} / {t('day')}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2 lg:flex-col lg:items-stretch">
                       <button
@@ -700,7 +784,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
                         className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-500/10 transition-colors"
                       >
                         <Edit3 size={16} />
-                        Edit
+                        {t('Edit')}
                       </button>
                       <button
                         type="button"
@@ -708,7 +792,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
                         className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-400/30 px-3 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/10 transition-colors"
                       >
                         <Trash2 size={16} />
-                        Delete
+                        {t('Delete')}
                       </button>
                     </div>
                   </article>
