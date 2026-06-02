@@ -7,7 +7,7 @@ const LanguageToggle = () => {
   const { language, setLanguage, isTranslating } = useTranslation();
 
   return (
-    <div className="relative inline-flex">
+    <div className="relative inline-flex shrink-0">
       <div
         className="inline-flex h-10 items-center rounded-lg border border-cyan-500/30 bg-black/50 p-1 text-sm font-semibold text-cyan-100"
         aria-label="Language"
@@ -25,7 +25,7 @@ const LanguageToggle = () => {
             >
               {item}
             </button>
-            {index === 0 && <span className="px-1 text-gray-500">/</span>}
+            {index === 0 && <span className="px-1 text-gray-500" aria-hidden="true">/</span>}
           </div>
         ))}
       </div>

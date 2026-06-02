@@ -15,35 +15,37 @@ interface NavbarProps {
 const Navbar = ({ pages, activePage, isMenuOpen, onToggleMenu, onNavigate, actions }: NavbarProps) => (
   <nav className="fixed top-0 w-full bg-black/80 backdrop-blur-md z-50 border-b border-cyan-500/20" aria-label="Primary">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="flex justify-between items-center h-16">
+      <div className="grid h-16 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 lg:gap-5">
         <motion.button
           type="button"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           onClick={() => onNavigate('home')}
-          className="text-2xl font-bold text-cyan-400 transition-colors hover:text-cyan-300 focus:outline-none"
+          className="whitespace-nowrap text-2xl font-bold text-cyan-400 transition-colors hover:text-cyan-300 focus:outline-none"
           aria-label="Go to home page"
         >
           AutoRent
         </motion.button>
-        <div className="hidden md:flex space-x-8">
+        <div className="hidden min-w-0 items-center justify-center gap-4 xl:flex 2xl:gap-6">
           {pages.map((page) => (
             <button
               key={page.key}
               type="button"
               onClick={() => onNavigate(page.key)}
               aria-current={activePage === page.key ? 'page' : undefined}
-              className={`text-gray-300 transition-colors duration-300 ${activePage === page.key ? 'text-cyan-400 font-semibold' : 'hover:text-cyan-400'}`}
+              className={`whitespace-nowrap text-sm text-gray-300 transition-colors duration-300 2xl:text-base ${
+                activePage === page.key ? 'text-cyan-400 font-semibold' : 'hover:text-cyan-400'
+              }`}
             >
               {page.label}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center justify-end gap-2 sm:gap-3">
           {actions}
           <button
             type="button"
-            className="md:hidden text-cyan-400"
+            className="text-cyan-400 xl:hidden"
             onClick={onToggleMenu}
             aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={isMenuOpen}
@@ -58,7 +60,7 @@ const Navbar = ({ pages, activePage, isMenuOpen, onToggleMenu, onNavigate, actio
           id="mobile-navigation"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="md:hidden bg-black/90 backdrop-blur-md rounded-lg mt-2 p-4"
+          className="mt-2 rounded-lg bg-black/90 p-4 backdrop-blur-md xl:hidden"
         >
           {pages.map((page) => (
             <button

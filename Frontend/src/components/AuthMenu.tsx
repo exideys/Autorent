@@ -107,15 +107,15 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
   };
 
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="inline-flex h-10 items-center gap-2 rounded-lg border border-cyan-500/30 bg-black/50 px-3 text-sm font-semibold text-cyan-100 hover:border-cyan-300/60 hover:bg-cyan-500/10 transition-colors"
+        className="inline-flex h-10 max-w-44 items-center gap-2 rounded-lg border border-cyan-500/30 bg-black/50 px-3 text-sm font-semibold text-cyan-100 transition-colors hover:border-cyan-300/60 hover:bg-cyan-500/10 sm:max-w-52"
         aria-expanded={isOpen}
       >
-        <UserCircle size={18} />
-        <span className="hidden sm:inline">{isSessionLoading ? t('Checking...') : user?.name || t('Account')}</span>
+        <UserCircle size={18} className="shrink-0" />
+        <span className="hidden min-w-0 truncate whitespace-nowrap sm:inline">{isSessionLoading ? t('Checking...') : user?.name || t('Account')}</span>
       </button>
 
       {isOpen && (
