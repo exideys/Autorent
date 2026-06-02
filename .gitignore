@@ -31,9 +31,9 @@ Frontend/dist/
 Frontend/dist-ssr/
 
 # Go build artifacts
-Backend/autorent-backend
 Backend/bin/
 Backend/tmp/
+Backend/autorent-backend
 *.test
 
 # Code coverage profiles and test artifacts
