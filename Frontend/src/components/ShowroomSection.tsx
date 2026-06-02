@@ -407,6 +407,7 @@ const ShowroomSection = ({ cars, isLoading, error, token, onRetry, onBookingCrea
                       <img
                         src={mainImage(car)}
                         alt={`${car.brand} ${car.model}`}
+                        referrerPolicy="no-referrer"
                         className="h-full w-full object-cover"
                         onError={(event) => {
                           event.currentTarget.onerror = null;

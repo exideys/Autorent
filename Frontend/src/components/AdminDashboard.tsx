@@ -1,15 +1,19 @@
-import { Edit3, Plus, RefreshCw, Save, Star, Trash2, Users, X } from 'lucide-react';
+import { Car as CarIcon, Edit3, Newspaper, Plus, RefreshCw, Save, Star, Trash2, Users, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { displayVehicleTerm, translatableVehicleTerms } from '../lib/carDisplay';
 import { ApiError, createAdminCar, deleteAdminCar, listAdminCars, listAdminUsers, rateAdminUser, updateAdminCar } from '../lib/api';
 import type { Car, CarInput, User } from '../types/api';
+import AdminNewsDashboard from './AdminNewsDashboard';
 
 interface AdminDashboardProps {
   token: string;
   onInventoryChanged: () => void;
+  onNewsChanged: () => void;
   onUnauthorized: () => void;
 }
+
+type AdminPanel = 'fleet' | 'news';
 
 interface CarFormState {
   brand: string;
@@ -135,12 +139,13 @@ const formFromCar = (car: Car): CarFormState => ({
   imageUrls: car.images.map((image) => image.image_url).join('\n'),
 });
 
-const AdminDashboard = ({ token, onInventoryChanged, onUnauthorized }: AdminDashboardProps) => {
+const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthorized }: AdminDashboardProps) => {
   const [cars, setCars] = useState<Car[]>([]);
   const [customers, setCustomers] = useState<User[]>([]);
   const [form, setForm] = useState<CarFormState>(emptyForm);
   const [ratingInputs, setRatingInputs] = useState<Record<number, string>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [activePanel, setActivePanel] = useState<AdminPanel>('fleet');
   const [isLoading, setIsLoading] = useState(true);
   const [isCustomersLoading, setIsCustomersLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -209,6 +214,8 @@ const AdminDashboard = ({ token, onInventoryChanged, onUnauthorized }: AdminDash
     'day',
     'Edit',
     'Cancel editing',
+    'Fleet',
+    'News',
     error,
     message,
     ...statusOptions,
@@ -420,6 +427,33 @@ const AdminDashboard = ({ token, onInventoryChanged, onUnauthorized }: AdminDash
           </button>
         </div>
 
+        <div className="inline-flex rounded-lg border border-cyan-500/20 bg-black/35 p-1">
+          <button
+            type="button"
+            onClick={() => setActivePanel('fleet')}
+            className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
+              activePanel === 'fleet' ? 'bg-cyan-500 text-black' : 'text-cyan-100 hover:bg-cyan-500/10'
+            }`}
+          >
+            <CarIcon size={16} />
+            {t('Fleet')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActivePanel('news')}
+            className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
+              activePanel === 'news' ? 'bg-cyan-500 text-black' : 'text-cyan-100 hover:bg-cyan-500/10'
+            }`}
+          >
+            <Newspaper size={16} />
+            {t('News')}
+          </button>
+        </div>
+
+        {activePanel === 'news' ? (
+          <AdminNewsDashboard token={token} onNewsChanged={onNewsChanged} onUnauthorized={onUnauthorized} />
+        ) : (
+          <>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-cyan-500/20 bg-white/10 p-5">
             <p className="text-sm text-gray-400">{t('Total Vehicles')}</p>
@@ -716,6 +750,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onUnauthorized }: AdminDash
                     <img
                       src={mainImage(car)}
                       alt={`${car.brand} ${car.model}`}
+                      referrerPolicy="no-referrer"
                       className="h-32 w-full rounded-lg object-cover lg:h-24 lg:w-32"
                       onError={(event) => {
                         event.currentTarget.onerror = null;
@@ -766,6 +801,8 @@ const AdminDashboard = ({ token, onInventoryChanged, onUnauthorized }: AdminDash
             )}
           </section>
         </div>
+          </>
+        )}
       </div>
     </main>
   );

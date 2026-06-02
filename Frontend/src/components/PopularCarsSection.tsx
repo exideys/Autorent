@@ -81,6 +81,7 @@ const PopularCarsSection = ({ cars, error, isLoading, token, onExploreShowroom, 
                   <img
                     src={mainImage(car)}
                     alt={`${car.brand} ${car.model}`}
+                    referrerPolicy="no-referrer"
                     className="h-full w-full object-cover"
                     onError={(event) => {
                       event.currentTarget.onerror = null;

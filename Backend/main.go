@@ -76,6 +76,7 @@ func main() {
 	carService := services.NewCarService(carRepository, rentalOrderRepository)
 	rentalOrderService := services.NewRentalOrderService(rentalOrderRepository)
 	userRepository := repository.NewUserRepository(db)
+	newsRepository := repository.NewNewsRepository(db)
 	var aiExtractor ai.CarFilterExtractor
 	aiExtractor, err = ai.NewGeminiExtractor(context.Background(), cfg.GeminiAPIKey, cfg.GeminiModel)
 	if err != nil {
@@ -93,12 +94,14 @@ func main() {
 	handlers.RegisterRentalOrderRoutes(api, rentalOrderService, tokenManager)
 	handlers.RegisterAIRoutes(api, carRepository, aiExtractor)
 	handlers.RegisterTranslationRoutes(api, translator)
+	handlers.RegisterNewsRoutes(api, newsRepository)
 
 	adminAPI := api.Group("/admin")
 	adminAPI.Use(handlers.RequireAdmin(tokenManager))
 	handlers.RegisterAdminCarRoutes(adminAPI, carService)
 	handlers.RegisterAdminUserRoutes(adminAPI, userRepository)
 	handlers.RegisterAdminRentalOrderRoutes(adminAPI, rentalOrderService)
+	handlers.RegisterAdminNewsRoutes(adminAPI, newsRepository)
 
 	// Get port from environment or default
 	port := os.Getenv("PORT")

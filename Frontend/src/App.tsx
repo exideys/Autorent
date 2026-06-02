@@ -9,6 +9,7 @@ import HeroSection from './components/HeroSection';
 import HowItWorksSection from './components/HowItWorksSection';
 import LanguageToggle from './components/LanguageToggle';
 import Navbar from './components/Navbar';
+import NewsListSection from './components/NewsListSection';
 import PopularCarsSection from './components/PopularCarsSection';
 import ProfilePage from './components/ProfilePage';
 import ServicesSection from './components/ServicesSection';
@@ -24,8 +25,8 @@ import {
   services,
 } from './data/siteData';
 import { useTranslation } from './i18n/TranslationContext';
-import { getCurrentUser, listPublicCars } from './lib/api';
-import type { AuthResponse, Car } from './types/api';
+import { getCurrentUser, listPublicCars, listPublishedNews } from './lib/api';
+import type { AuthResponse, Car, NewsArticle } from './types/api';
 import type { BenefitItem, HowItWorksStep, PageKey, ServiceItem } from './types/site';
 
 const authStorageKey = 'autorent.auth';
@@ -68,6 +69,9 @@ const App = () => {
   const [cars, setCars] = useState<Car[]>([]);
   const [isCarsLoading, setIsCarsLoading] = useState(true);
   const [carsError, setCarsError] = useState('');
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  const [isNewsLoading, setIsNewsLoading] = useState(true);
+  const [newsError, setNewsError] = useState('');
   const [auth, setAuth] = useState<AuthResponse | null>(() => readStoredAuth());
   const [isSessionLoading, setIsSessionLoading] = useState(false);
 
@@ -75,6 +79,7 @@ const App = () => {
   const isAdminPage = activePage === 'admin';
   const isProfilePage = activePage === 'profile';
   const isHome = activePage === 'home';
+  const isNewsPage = activePage === 'news';
 
   const navPages = useMemo(
     () => (user?.role === 'admin' ? [...pages, { key: 'admin' as PageKey, label: 'Admin' }] : pages),
@@ -123,9 +128,24 @@ const App = () => {
     }
   }, []);
 
+  const loadNews = useCallback(async () => {
+    setIsNewsLoading(true);
+    setNewsError('');
+
+    try {
+      const loadedNews = await listPublishedNews();
+      setNews(loadedNews);
+    } catch (loadError) {
+      setNewsError(loadError instanceof Error ? loadError.message : 'Unable to load news');
+    } finally {
+      setIsNewsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadCars();
-  }, [loadCars]);
+    loadNews();
+  }, [loadCars, loadNews]);
 
   useEffect(() => {
     const storedAuth = readStoredAuth();
@@ -219,7 +239,7 @@ const App = () => {
       <TranslationNotice />
 
       {isAdminPage && auth?.token && user?.role === 'admin' ? (
-        <AdminDashboard token={auth.token} onInventoryChanged={loadCars} onUnauthorized={handleLogout} />
+        <AdminDashboard token={auth.token} onInventoryChanged={loadCars} onNewsChanged={loadNews} onUnauthorized={handleLogout} />
       ) : isProfilePage && user ? (
         <ProfilePage
           user={user}
@@ -270,6 +290,8 @@ const App = () => {
                 onBookingCreated={loadCars}
               />
             )}
+
+            {isNewsPage && <NewsListSection articles={news} isLoading={isNewsLoading} error={newsError} onRetry={loadNews} />}
 
             {(isHome || activePage === 'how-it-works') && <HowItWorksSection items={translatedHowItWorksSteps} />}
 

@@ -1,9 +1,11 @@
-import { Calendar, DollarSign, Fuel, Gauge, Loader2, Send, Shield, Sparkles, Users } from 'lucide-react';
+import { Calendar, DollarSign, Fuel, Gauge, Info, Loader2, Send, Shield, Sparkles, Users } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { getCarRecommendation } from '../lib/api';
-import { displayVehicleTerm, translatableVehicleTerms } from '../lib/carDisplay';
-import type { CarRecommendationResponse, RecommendedCar } from '../types/api';
+import { displayVehicleTerm, fallbackImageUrl, mainImage, translatableVehicleTerms } from '../lib/carDisplay';
+import type { Car, CarRecommendationResponse, RecommendedCar } from '../types/api';
+import BookingModal from './BookingModal';
+import VehicleDetailsModal from './VehicleDetailsModal';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -25,11 +27,34 @@ const recommendationDetail = (car: RecommendedCar, t: (text: string) => string) 
   { icon: Fuel, label: displayVehicleTerm(car.fuel_type, t) },
 ];
 
+const recommendedToCar = (car: RecommendedCar): Car => ({
+  id: car.id,
+  brand: car.brand,
+  model: car.model,
+  year: car.year,
+  car_class: car.car_class,
+  body_type: car.body_type,
+  transmission: car.transmission,
+  fuel_type: car.fuel_type,
+  seats: car.seats,
+  doors: car.doors,
+  engine_volume: car.engine_volume,
+  horsepower: car.horsepower || undefined,
+  price_per_day: car.price_per_day,
+  deposit: car.deposit,
+  color: car.color || undefined,
+  status: car.status,
+  created_at: car.created_at || new Date().toISOString(),
+  images: car.images || [],
+});
+
 const AICarAssistant = () => {
   const [message, setMessage] = useState('');
   const [result, setResult] = useState<CarRecommendationResponse | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedCar, setSelectedCar] = useState<Car | null>(null);
+  const [bookingCar, setBookingCar] = useState<Car | null>(null);
   const { t } = useTranslation([
     requestPlaceholder,
     'Message is required.',
@@ -47,9 +72,12 @@ const AICarAssistant = () => {
     'hp',
     'Horsepower n/a',
     'Deposit',
+    'Details',
     error,
     result?.answer,
-    ...translatableVehicleTerms(result?.cars.flatMap((car) => [car.car_class, car.status || 'available', car.body_type, car.transmission, car.fuel_type]) || []),
+    ...translatableVehicleTerms(
+      result?.cars.flatMap((car) => [car.car_class, car.status || 'available', car.body_type, car.transmission, car.fuel_type]) || [],
+    ),
   ]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -129,46 +157,89 @@ const AICarAssistant = () => {
 
             {result.cars.length > 0 && (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-                {result.cars.map((car) => (
-                  <article key={car.id} className="rounded-lg border border-cyan-500/20 bg-black/45 p-4 shadow-lg">
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-lg font-semibold leading-tight text-white">
-                          {car.brand} {car.model}
-                        </h3>
-                        <p className="mt-1 text-xs uppercase tracking-wide text-cyan-200">{displayVehicleTerm(car.car_class, t)}</p>
+                {result.cars.map((car) => {
+                  const displayCar = recommendedToCar(car);
+
+                  return (
+                    <article key={car.id} className="overflow-hidden rounded-lg border border-cyan-500/20 bg-black/45 shadow-lg">
+                      <div className="relative h-36">
+                        <img
+                          src={mainImage(displayCar)}
+                          alt={`${car.brand} ${car.model}`}
+                          referrerPolicy="no-referrer"
+                          className="h-full w-full object-cover"
+                          onError={(event) => {
+                            event.currentTarget.onerror = null;
+                            event.currentTarget.src = fallbackImageUrl;
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                        <span className="absolute left-3 top-3 rounded-md border border-cyan-300/30 bg-cyan-500/20 px-2 py-1 text-xs text-cyan-100">
+                          {displayVehicleTerm(car.car_class, t)}
+                        </span>
                       </div>
-                      <span className="rounded-md border border-white/15 bg-white/10 px-2 py-1 text-xs capitalize text-gray-200">
-                        {displayVehicleTerm(car.status || 'available', t)}
-                      </span>
-                    </div>
 
-                    <div className="mb-4 flex flex-wrap gap-2 text-xs text-gray-300">
-                      <span className="rounded-md bg-white/10 px-2 py-1">{displayVehicleTerm(car.body_type, t)}</span>
-                      <span className="rounded-md bg-white/10 px-2 py-1">{displayVehicleTerm(car.transmission, t)}</span>
-                      <span className="rounded-md bg-white/10 px-2 py-1">{displayVehicleTerm(car.fuel_type, t)}</span>
-                    </div>
-
-                    <p className="mb-4 inline-flex items-center gap-2 text-xl font-bold text-cyan-300">
-                      <DollarSign size={18} />
-                      {currencyFormatter.format(car.price_per_day)} / {t('day')}
-                    </p>
-
-                    <div className="space-y-2 text-sm text-gray-300">
-                      {recommendationDetail(car, t).map(({ icon: Icon, label }) => (
-                        <div key={label} className="flex items-center gap-2">
-                          <Icon size={15} className="text-cyan-300" />
-                          <span>{label}</span>
+                      <div className="p-4">
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-lg font-semibold leading-tight text-white">
+                              {car.brand} {car.model}
+                            </h3>
+                            <p className="mt-1 text-xs uppercase tracking-wide text-cyan-200">{displayVehicleTerm(car.body_type, t)}</p>
+                          </div>
+                          <span className="rounded-md border border-white/15 bg-white/10 px-2 py-1 text-xs capitalize text-gray-200">
+                            {displayVehicleTerm(car.status || 'available', t)}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  </article>
-                ))}
+
+                        <div className="mb-4 flex flex-wrap gap-2 text-xs text-gray-300">
+                          <span className="rounded-md bg-white/10 px-2 py-1">{displayVehicleTerm(car.transmission, t)}</span>
+                          <span className="rounded-md bg-white/10 px-2 py-1">{displayVehicleTerm(car.fuel_type, t)}</span>
+                        </div>
+
+                        <p className="mb-4 inline-flex items-center gap-2 text-xl font-bold text-cyan-300">
+                          <DollarSign size={18} />
+                          {currencyFormatter.format(car.price_per_day)} / {t('day')}
+                        </p>
+
+                        <div className="space-y-2 text-sm text-gray-300">
+                          {recommendationDetail(car, t).map(({ icon: Icon, label }) => (
+                            <div key={label} className="flex items-center gap-2">
+                              <Icon size={15} className="text-cyan-300" />
+                              <span>{label}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCar(displayCar)}
+                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-4 py-2 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-500/10"
+                        >
+                          <Info size={16} />
+                          {t('Details')}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             )}
           </div>
         )}
       </div>
+
+      {selectedCar && (
+        <VehicleDetailsModal
+          car={selectedCar}
+          onClose={() => setSelectedCar(null)}
+          onBooking={(car) => {
+            setSelectedCar(null);
+            setBookingCar(car);
+          }}
+        />
+      )}
+      {bookingCar && <BookingModal car={bookingCar} onClose={() => setBookingCar(null)} />}
     </section>
   );
 };
