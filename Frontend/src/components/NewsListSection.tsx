@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Calendar, Newspaper, RefreshCw, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
+import { resolveApiAssetUrl } from '../lib/api';
 import type { NewsArticle } from '../types/api';
 
 interface NewsListSectionProps {
@@ -12,6 +13,8 @@ interface NewsListSectionProps {
 }
 
 const fallbackImageUrl = `${import.meta.env.BASE_URL}hero-main.png`;
+
+const newsImage = (article: Pick<NewsArticle, 'image_url'>) => resolveApiAssetUrl(article.image_url, fallbackImageUrl);
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -118,7 +121,7 @@ const NewsListSection = ({ articles, error, isLoading, onRetry }: NewsListSectio
               >
                 <div className="relative h-64 md:h-80">
                   <img
-                    src={featuredArticle.image_url || fallbackImageUrl}
+                    src={newsImage(featuredArticle)}
                     alt={t(featuredArticle.title)}
                     referrerPolicy="no-referrer"
                     className="h-full w-full object-cover"
@@ -165,7 +168,7 @@ const NewsListSection = ({ articles, error, isLoading, onRetry }: NewsListSectio
                     className="grid gap-4 rounded-xl border border-cyan-500/20 bg-black/45 p-4 shadow-lg shadow-black/20 sm:grid-cols-[9rem_1fr]"
                   >
                     <img
-                      src={article.image_url || fallbackImageUrl}
+                      src={newsImage(article)}
                       alt={t(article.title)}
                       referrerPolicy="no-referrer"
                       className="h-36 w-full rounded-lg object-cover sm:h-full"
@@ -219,7 +222,7 @@ const NewsListSection = ({ articles, error, isLoading, onRetry }: NewsListSectio
               </button>
             </div>
             <img
-              src={selectedArticle.image_url || fallbackImageUrl}
+              src={newsImage(selectedArticle)}
               alt={t(selectedArticle.title)}
               referrerPolicy="no-referrer"
               className="h-64 w-full object-cover"

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
+import { resolveApiAssetUrl } from '../lib/api';
 import { currencyFormatter, detailRows, displayVehicleTerm, fallbackImageUrl, mainImage, translatableVehicleTerms } from '../lib/carDisplay';
 import type { Car } from '../types/api';
 
@@ -80,13 +81,14 @@ const VehicleDetailsModal = ({ car, onBooking, onClose }: VehicleDetailsModalPro
             {thumbnailImages.length > 1 && (
               <div className="grid grid-cols-3 gap-3">
                 {thumbnailImages.map((image) => {
-                  const isSelected = image.image_url === selectedImageUrl;
+                  const imageUrl = resolveApiAssetUrl(image.image_url, fallbackImageUrl);
+                  const isSelected = imageUrl === selectedImageUrl;
 
                   return (
                     <button
                       key={image.id}
                       type="button"
-                      onClick={() => setSelectedImageUrl(image.image_url)}
+                      onClick={() => setSelectedImageUrl(imageUrl)}
                       className={`overflow-hidden rounded-lg border transition-all ${
                         isSelected
                           ? 'border-cyan-300 shadow-lg shadow-cyan-500/25'
@@ -96,7 +98,7 @@ const VehicleDetailsModal = ({ car, onBooking, onClose }: VehicleDetailsModalPro
                       aria-pressed={isSelected}
                     >
                       <img
-                        src={image.image_url}
+                        src={imageUrl}
                         alt={`${car.brand} ${car.model}`}
                         referrerPolicy="no-referrer"
                         className="h-24 w-full object-cover"

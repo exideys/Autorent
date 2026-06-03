@@ -1,7 +1,7 @@
 import { Edit3, ImagePlus, Loader2, Newspaper, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
-import { ApiError, createAdminNews, deleteAdminNews, listAdminNews, updateAdminNews, uploadAdminNewsImage } from '../lib/api';
+import { ApiError, createAdminNews, deleteAdminNews, listAdminNews, resolveApiAssetUrl, updateAdminNews, uploadAdminNewsImage } from '../lib/api';
 import type { NewsArticle, NewsInput, NewsStatus } from '../types/api';
 
 interface AdminNewsDashboardProps {
@@ -45,6 +45,8 @@ const formatFileSize = (size: number) => {
 };
 
 const fallbackImageUrl = `${import.meta.env.BASE_URL}hero-main.png`;
+
+const newsImage = (article: Pick<NewsArticle, 'image_url'>) => resolveApiAssetUrl(article.image_url, fallbackImageUrl);
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -481,7 +483,7 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
               {articles.map((article) => (
                 <article key={article.id} className="grid gap-4 rounded-xl border border-cyan-500/10 bg-black/35 p-4 lg:grid-cols-[8rem_1fr_auto]">
                   <img
-                    src={article.image_url || fallbackImageUrl}
+                    src={newsImage(article)}
                     alt={t(article.title)}
                     referrerPolicy="no-referrer"
                     className="h-32 w-full rounded-lg object-cover lg:h-24 lg:w-32"
