@@ -51,7 +51,7 @@ type CarInput struct {
 }
 
 type CarImageInput struct {
-	ImageURL  string `json:"image_url" binding:"required,max=255"`
+	ImageURL  string `json:"image_url" binding:"required,max=2048"`
 	IsMain    bool   `json:"is_main"`
 	SortOrder int    `json:"sort_order"`
 }

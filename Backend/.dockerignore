@@ -6,3 +6,6 @@ tmp/
 bin/
 coverage.*
 *.coverprofile
+credentials/
+*service-account*.json
+*google-drive*.json

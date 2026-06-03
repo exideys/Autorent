@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"autorent-backend/internal/auth"
 	"autorent-backend/internal/models"
 	"autorent-backend/internal/repository"
+	"autorent-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -170,6 +172,90 @@ func TestAdminUserRentalOrdersRequireAdminRole(t *testing.T) {
 
 	if recorder.Code != http.StatusForbidden {
 		t.Fatalf("expected status %d, got %d", http.StatusForbidden, recorder.Code)
+	}
+}
+
+func TestAdminListUserRentalOrders(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	store := newFakeRentalOrderHandlerStore()
+	store.listFunc = func(_ context.Context, userID int64) ([]models.RentalOrder, error) {
+		if userID != 42 {
+			t.Fatalf("expected user id 42, got %d", userID)
+		}
+		return []models.RentalOrder{*rentalOrderTestResponse(userID, 7)}, nil
+	}
+
+	router := gin.New()
+	RegisterAdminRentalOrderRoutes(router.Group("/api/admin"), store)
+
+	req, err := http.NewRequest(http.MethodGet, "/api/admin/users/42/rental-orders", nil)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d: %s", http.StatusOK, recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestAdminListUserRentalOrdersRejectsInvalidID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	RegisterAdminRentalOrderRoutes(router.Group("/api/admin"), newFakeRentalOrderHandlerStore())
+
+	req, err := http.NewRequest(http.MethodGet, "/api/admin/users/not-an-id/rental-orders", nil)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d", http.StatusBadRequest, recorder.Code)
+	}
+}
+
+func TestRentalOrderHandlersMapInvalidInputAndInternalErrors(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tokenManager := auth.NewTokenManager("secret", time.Hour)
+	token := rentalTestToken(t, tokenManager, 42, models.UserRoleUser)
+
+	tests := []struct {
+		name       string
+		err        error
+		wantStatus int
+	}{
+		{name: "invalid", err: services.ErrInvalidInput, wantStatus: http.StatusBadRequest},
+		{name: "internal", err: errors.New("database failed"), wantStatus: http.StatusInternalServerError},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newFakeRentalOrderHandlerStore()
+			store.listFunc = func(context.Context, int64) ([]models.RentalOrder, error) {
+				return nil, tt.err
+			}
+
+			router := gin.New()
+			RegisterRentalOrderRoutes(router.Group("/api"), store, tokenManager)
+
+			req, err := http.NewRequest(http.MethodGet, "/api/rental-orders", nil)
+			if err != nil {
+				t.Fatalf("failed to create request: %v", err)
+			}
+			req.Header.Set("Authorization", "Bearer "+token)
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, req)
+
+			if recorder.Code != tt.wantStatus {
+				t.Fatalf("expected status %d, got %d", tt.wantStatus, recorder.Code)
+			}
+		})
 	}
 }
 

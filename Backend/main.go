@@ -13,6 +13,7 @@ import (
 	"autorent-backend/internal/handlers"
 	"autorent-backend/internal/repository"
 	"autorent-backend/internal/services"
+	"autorent-backend/internal/storage"
 	"autorent-backend/internal/translation"
 
 	"github.com/gin-contrib/cors"
@@ -37,6 +38,22 @@ func main() {
 	} else {
 		log.Printf("DEEPL_API_KEY is set. Ukrainian translation will use endpoint: %s", cfg.DeepLAPIURL)
 	}
+	var imageStorage handlers.ImageStorage
+	driveStorage, err := storage.NewGoogleDriveStorage(context.Background(), storage.GoogleDriveConfig{
+		OAuthClientID:     cfg.GoogleDriveOAuthClientID,
+		OAuthClientSecret: cfg.GoogleDriveOAuthClientSecret,
+		OAuthRefreshToken: cfg.GoogleDriveOAuthRefreshToken,
+		CarsFolderID:      cfg.GoogleDriveCarsFolderID,
+		NewsFolderID:      cfg.GoogleDriveNewsFolderID,
+	})
+	if err != nil {
+		log.Printf("Google Drive image storage disabled: %v", err)
+	} else if driveStorage == nil {
+		log.Println("Google Drive image storage disabled: folder ids are not configured.")
+	} else {
+		imageStorage = driveStorage
+		log.Printf("Google Drive image storage enabled using %s auth.", driveStorage.AuthMode())
+	}
 
 	// Connect to database
 	db, err := sql.Open("mysql", cfg.DatabaseDSN)
@@ -54,19 +71,7 @@ func main() {
 	r := gin.Default()
 
 	// CORS middleware
-	allowedOrigins := strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ",")
-	allowCredentials := true
-	if len(allowedOrigins) == 1 && allowedOrigins[0] == "" {
-		allowedOrigins = []string{"*"}
-		allowCredentials = false
-	}
-
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     allowedOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Admin-Setup-Token"},
-		AllowCredentials: allowCredentials,
-	}))
+	r.Use(cors.New(corsConfig(os.Getenv("CORS_ALLOWED_ORIGINS"))))
 
 	// Routes
 	r.GET("/health", handlers.HealthHandler)
@@ -95,9 +100,11 @@ func main() {
 	handlers.RegisterAIRoutes(api, carRepository, aiExtractor)
 	handlers.RegisterTranslationRoutes(api, translator)
 	handlers.RegisterNewsRoutes(api, newsRepository)
+	handlers.RegisterImageRoutes(api, imageStorage)
 
 	adminAPI := api.Group("/admin")
 	adminAPI.Use(handlers.RequireAdmin(tokenManager))
+	handlers.RegisterAdminUploadRoutes(adminAPI, imageStorage, cfg.ImageUploadMaxBytes)
 	handlers.RegisterAdminCarRoutes(adminAPI, carService)
 	handlers.RegisterAdminUserRoutes(adminAPI, userRepository)
 	handlers.RegisterAdminRentalOrderRoutes(adminAPI, rentalOrderService)
@@ -113,5 +120,21 @@ func main() {
 	log.Printf("Server starting on port %s", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
+	}
+}
+
+func corsConfig(allowedOriginsEnv string) cors.Config {
+	allowedOrigins := strings.Split(allowedOriginsEnv, ",")
+	allowCredentials := true
+	if len(allowedOrigins) == 1 && allowedOrigins[0] == "" {
+		allowedOrigins = []string{"*"}
+		allowCredentials = false
+	}
+
+	return cors.Config{
+		AllowOrigins:     allowedOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Admin-Setup-Token"},
+		AllowCredentials: allowCredentials,
 	}
 }

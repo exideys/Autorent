@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS cars (
 CREATE TABLE IF NOT EXISTS car_images (
     id INT PRIMARY KEY AUTO_INCREMENT,
     car_id INT NOT NULL,
-    image_url VARCHAR(255) NOT NULL,
+    image_url TEXT NOT NULL,
     is_main BOOLEAN DEFAULT FALSE,
     sort_order INT DEFAULT 0,
 

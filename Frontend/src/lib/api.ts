@@ -5,6 +5,7 @@ import type {
   Car,
   CarInput,
   CarRecommendationResponse,
+  ImageUploadResponse,
   LoginPayload,
   NewsArticle,
   NewsInput,
@@ -44,10 +45,12 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   rawResponse?: boolean;
 }
 
+const isFormDataBody = (body: unknown): body is FormData => typeof FormData !== 'undefined' && body instanceof FormData;
+
 const buildHeaders = (options: RequestOptions) => {
   const headers = new Headers(options.headers);
 
-  if (options.body !== undefined && !headers.has('Content-Type')) {
+  if (options.body !== undefined && !isFormDataBody(options.body) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
   if (options.token) {
@@ -58,10 +61,16 @@ const buildHeaders = (options: RequestOptions) => {
 };
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const body = isFormDataBody(options.body)
+    ? options.body
+    : options.body === undefined
+      ? undefined
+      : JSON.stringify(options.body);
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: buildHeaders(options),
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body,
   });
 
   if (response.status === 204) {
@@ -153,6 +162,26 @@ export const rateAdminUser = (token: string, id: number, payload: RateUserPayloa
     method: 'PATCH',
     token,
     body: payload,
+  });
+
+const imageUploadForm = (file: File) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  return formData;
+};
+
+export const uploadAdminCarImage = (token: string, file: File) =>
+  apiRequest<ImageUploadResponse>('/admin/uploads/car-image', {
+    method: 'POST',
+    token,
+    body: imageUploadForm(file),
+  });
+
+export const uploadAdminNewsImage = (token: string, file: File) =>
+  apiRequest<ImageUploadResponse>('/admin/uploads/news-image', {
+    method: 'POST',
+    token,
+    body: imageUploadForm(file),
   });
 
 export const createAdminCar = (token: string, payload: CarInput) =>
