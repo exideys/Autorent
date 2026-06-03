@@ -21,6 +21,10 @@ lerna-debug.log*
 .env.*.local
 Backend/.env
 Frontend/.env
+credentials/
+Backend/credentials/
+*service-account*.json
+*google-drive*.json
 
 # Frontend dependencies and build output
 node_modules/
@@ -39,6 +43,7 @@ Backend/autorent-backend
 # Code coverage profiles and test artifacts
 *.out
 coverage.*
+coverage_*.html
 *.coverprofile
 profile.cov
 project.diff

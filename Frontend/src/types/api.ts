@@ -126,6 +126,12 @@ export interface TranslationResponse {
   translations: string[];
 }
 
+export interface ImageUploadResponse {
+  image_url: string;
+  file_id: string;
+  drive_url?: string;
+}
+
 export interface RentalOrderCarSummary {
   id: number;
   brand: string;

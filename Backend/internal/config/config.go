@@ -3,7 +3,9 @@ package config
 import (
 	"crypto/tls"
 	"net"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -12,14 +14,20 @@ import (
 )
 
 type Config struct {
-	DatabaseDSN     string
-	JWTSecret       string
-	JWTTokenTTL     time.Duration
-	AdminSetupToken string
-	GeminiAPIKey    string
-	GeminiModel     string
-	DeepLAPIKey     string
-	DeepLAPIURL     string
+	DatabaseDSN                  string
+	JWTSecret                    string
+	JWTTokenTTL                  time.Duration
+	AdminSetupToken              string
+	GeminiAPIKey                 string
+	GeminiModel                  string
+	DeepLAPIKey                  string
+	DeepLAPIURL                  string
+	GoogleDriveOAuthClientID     string
+	GoogleDriveOAuthClientSecret string
+	GoogleDriveOAuthRefreshToken string
+	GoogleDriveCarsFolderID      string
+	GoogleDriveNewsFolderID      string
+	ImageUploadMaxBytes          int64
 }
 
 var (
@@ -41,6 +49,12 @@ func Load() (*Config, error) {
 	geminiModel := getEnv("GEMINI_MODEL", "gemini-2.5-flash")
 	deepLAPIKey := getEnv("DEEPL_API_KEY", "")
 	deepLAPIURL := getEnv("DEEPL_API_URL", "https://api-free.deepl.com")
+	googleDriveOAuthClientID := getEnv("GOOGLE_DRIVE_OAUTH_CLIENT_ID", "")
+	googleDriveOAuthClientSecret := getEnv("GOOGLE_DRIVE_OAUTH_CLIENT_SECRET", "")
+	googleDriveOAuthRefreshToken := getEnv("GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN", "")
+	googleDriveCarsFolderID := normalizeGoogleDriveFolderID(getEnvAny([]string{"GOOGLE_DRIVE_CARS_FOLDER_ID", "GOOGLE_DRIVE_CARS_FOLDER_URL"}, ""))
+	googleDriveNewsFolderID := normalizeGoogleDriveFolderID(getEnvAny([]string{"GOOGLE_DRIVE_NEWS_FOLDER_ID", "GOOGLE_DRIVE_NEWS_FOLDER_URL"}, ""))
+	imageUploadMaxBytes := getEnvInt64("IMAGE_UPLOAD_MAX_BYTES", 10*1024*1024)
 
 	tlsConfigName, err := resolveTLSConfig(dbTLS, dbHost)
 	if err != nil {
@@ -63,14 +77,20 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
-		DatabaseDSN:     mysqlConfig.FormatDSN(),
-		JWTSecret:       jwtSecret,
-		JWTTokenTTL:     jwtTTL,
-		AdminSetupToken: adminSetupToken,
-		GeminiAPIKey:    geminiAPIKey,
-		GeminiModel:     geminiModel,
-		DeepLAPIKey:     deepLAPIKey,
-		DeepLAPIURL:     deepLAPIURL,
+		DatabaseDSN:                  mysqlConfig.FormatDSN(),
+		JWTSecret:                    jwtSecret,
+		JWTTokenTTL:                  jwtTTL,
+		AdminSetupToken:              adminSetupToken,
+		GeminiAPIKey:                 geminiAPIKey,
+		GeminiModel:                  geminiModel,
+		DeepLAPIKey:                  deepLAPIKey,
+		DeepLAPIURL:                  deepLAPIURL,
+		GoogleDriveOAuthClientID:     googleDriveOAuthClientID,
+		GoogleDriveOAuthClientSecret: googleDriveOAuthClientSecret,
+		GoogleDriveOAuthRefreshToken: googleDriveOAuthRefreshToken,
+		GoogleDriveCarsFolderID:      googleDriveCarsFolderID,
+		GoogleDriveNewsFolderID:      googleDriveNewsFolderID,
+		ImageUploadMaxBytes:          imageUploadMaxBytes,
 	}, nil
 }
 
@@ -102,6 +122,52 @@ func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
 	}
 
 	return duration
+}
+
+func getEnvInt64(key string, defaultValue int64) int64 {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || parsed <= 0 {
+		return defaultValue
+	}
+
+	return parsed
+}
+
+func normalizeGoogleDriveFolderID(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+
+	parsedURL, err := url.Parse(trimmed)
+	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
+		return trimmed
+	}
+
+	if folderID := folderIDFromPath(parsedURL.Path); folderID != "" {
+		return folderID
+	}
+	if folderID := strings.TrimSpace(parsedURL.Query().Get("id")); folderID != "" {
+		return folderID
+	}
+
+	return trimmed
+}
+
+func folderIDFromPath(path string) string {
+	parts := strings.Split(path, "/")
+	for index, part := range parts {
+		if part == "folders" && index+1 < len(parts) {
+			return strings.TrimSpace(parts[index+1])
+		}
+	}
+
+	return ""
 }
 
 func resolveTLSConfig(value string, dbHost string) (string, error) {

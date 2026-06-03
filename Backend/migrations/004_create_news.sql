@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS news (
     title VARCHAR(120) NOT NULL,
     summary VARCHAR(240) NOT NULL,
     content TEXT NOT NULL,
-    image_url VARCHAR(255),
+    image_url TEXT,
     status VARCHAR(30) NOT NULL DEFAULT 'draft',
     published_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

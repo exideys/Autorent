@@ -21,6 +21,12 @@ func TestLoadBuildsDatabaseAndAuthConfigFromEnv(t *testing.T) {
 	t.Setenv("GEMINI_MODEL", "gemini-test-model")
 	t.Setenv("DEEPL_API_KEY", "deepl-key")
 	t.Setenv("DEEPL_API_URL", "https://example.deepl.test")
+	t.Setenv("GOOGLE_DRIVE_OAUTH_CLIENT_ID", "oauth-client-id")
+	t.Setenv("GOOGLE_DRIVE_OAUTH_CLIENT_SECRET", "oauth-client-secret")
+	t.Setenv("GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN", "oauth-refresh-token")
+	t.Setenv("GOOGLE_DRIVE_CARS_FOLDER_ID", "cars-folder")
+	t.Setenv("GOOGLE_DRIVE_NEWS_FOLDER_ID", "https://drive.google.com/drive/folders/news-folder?usp=sharing")
+	t.Setenv("IMAGE_UPLOAD_MAX_BYTES", "123456")
 
 	cfg, err := Load()
 	if err != nil {
@@ -70,6 +76,24 @@ func TestLoadBuildsDatabaseAndAuthConfigFromEnv(t *testing.T) {
 	}
 	if cfg.DeepLAPIURL != "https://example.deepl.test" {
 		t.Fatalf("expected configured deepl api url, got %q", cfg.DeepLAPIURL)
+	}
+	if cfg.GoogleDriveOAuthClientID != "oauth-client-id" {
+		t.Fatalf("expected configured google drive oauth client id")
+	}
+	if cfg.GoogleDriveOAuthClientSecret != "oauth-client-secret" {
+		t.Fatalf("expected configured google drive oauth client secret")
+	}
+	if cfg.GoogleDriveOAuthRefreshToken != "oauth-refresh-token" {
+		t.Fatalf("expected configured google drive oauth refresh token")
+	}
+	if cfg.GoogleDriveCarsFolderID != "cars-folder" {
+		t.Fatalf("expected configured cars folder id, got %q", cfg.GoogleDriveCarsFolderID)
+	}
+	if cfg.GoogleDriveNewsFolderID != "news-folder" {
+		t.Fatalf("expected parsed news folder id, got %q", cfg.GoogleDriveNewsFolderID)
+	}
+	if cfg.ImageUploadMaxBytes != 123456 {
+		t.Fatalf("expected configured upload limit, got %d", cfg.ImageUploadMaxBytes)
 	}
 }
 
@@ -122,6 +146,23 @@ func TestGetEnvDurationFallsBackOnInvalidValue(t *testing.T) {
 	duration := getEnvDuration("JWT_TOKEN_TTL", 30*time.Minute)
 	if duration != 30*time.Minute {
 		t.Fatalf("expected fallback duration, got %s", duration)
+	}
+}
+
+func TestGetEnvInt64FallsBackOnInvalidValue(t *testing.T) {
+	t.Setenv("IMAGE_UPLOAD_MAX_BYTES", "not-a-number")
+
+	value := getEnvInt64("IMAGE_UPLOAD_MAX_BYTES", 99)
+	if value != 99 {
+		t.Fatalf("expected fallback integer value, got %d", value)
+	}
+}
+
+func TestNormalizeGoogleDriveFolderIDSupportsAlternateURL(t *testing.T) {
+	value := normalizeGoogleDriveFolderID("https://drive.google.com/open?id=alternate-folder")
+
+	if value != "alternate-folder" {
+		t.Fatalf("expected alternate-folder, got %q", value)
 	}
 }
 

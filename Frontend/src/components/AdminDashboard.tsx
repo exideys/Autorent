@@ -1,8 +1,17 @@
-import { Car as CarIcon, Edit3, Newspaper, Plus, RefreshCw, Save, Star, Trash2, Users, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { Car as CarIcon, Edit3, ImagePlus, Newspaper, Plus, RefreshCw, Save, Star, Trash2, Users, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { displayVehicleTerm, translatableVehicleTerms } from '../lib/carDisplay';
-import { ApiError, createAdminCar, deleteAdminCar, listAdminCars, listAdminUsers, rateAdminUser, updateAdminCar } from '../lib/api';
+import {
+  ApiError,
+  createAdminCar,
+  deleteAdminCar,
+  listAdminCars,
+  listAdminUsers,
+  rateAdminUser,
+  updateAdminCar,
+  uploadAdminCarImage,
+} from '../lib/api';
 import type { Car, CarInput, User } from '../types/api';
 import AdminNewsDashboard from './AdminNewsDashboard';
 
@@ -101,6 +110,28 @@ const imageInputs = (value: string) =>
       sort_order: index,
     }));
 
+const supportedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const imageUploadAccept = supportedImageTypes.join(',');
+
+const isSupportedImageFile = (file: File) => supportedImageTypes.includes(file.type);
+
+const formatFileSize = (size: number) => {
+  if (size < 1024 * 1024) {
+    return `${Math.max(1, Math.round(size / 1024))} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const appendImageUrls = (currentValue: string, imageUrls: string[]) => {
+  const existingUrls = currentValue
+    .split(/\r?\n/)
+    .map((url) => url.trim())
+    .filter(Boolean);
+
+  return [...existingUrls, ...imageUrls].join('\n');
+};
+
 const toCarInput = (form: CarFormState): CarInput => ({
   brand: form.brand.trim(),
   model: form.model.trim(),
@@ -143,6 +174,9 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
   const [cars, setCars] = useState<Car[]>([]);
   const [customers, setCustomers] = useState<User[]>([]);
   const [form, setForm] = useState<CarFormState>(emptyForm);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [isImageDropActive, setIsImageDropActive] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [ratingInputs, setRatingInputs] = useState<Record<number, string>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
   const [activePanel, setActivePanel] = useState<AdminPanel>('fleet');
@@ -200,6 +234,12 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
     'Deposit',
     'Color',
     'Image URLs',
+    'Vehicle images',
+    'Choose images',
+    'Drop images here',
+    'Selected files',
+    'Only JPG, PNG, WEBP, or GIF images can be uploaded.',
+    'Remove selected image',
     'Optional',
     'One URL per line. The first URL becomes the main image.',
     'Saving...',
@@ -308,7 +348,59 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
 
   const resetForm = () => {
     setForm(emptyForm);
+    setImageFiles([]);
+    setIsImageDropActive(false);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
     setEditingId(null);
+  };
+
+  const addImageFiles = (files: FileList | File[]) => {
+    const nextFiles = Array.from(files);
+    const acceptedFiles = nextFiles.filter(isSupportedImageFile);
+
+    if (acceptedFiles.length !== nextFiles.length) {
+      setError('Only JPG, PNG, WEBP, or GIF images can be uploaded.');
+    } else if (acceptedFiles.length > 0) {
+      setError('');
+    }
+    if (acceptedFiles.length > 0) {
+      setImageFiles((current) => [...current, ...acceptedFiles]);
+    }
+  };
+
+  const handleImageFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      addImageFiles(event.target.files);
+    }
+    event.target.value = '';
+  };
+
+  const handleImageDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setIsImageDropActive(false);
+    addImageFiles(event.dataTransfer.files);
+  };
+
+  const handleImageDragOver = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setIsImageDropActive(true);
+  };
+
+  const removeImageFile = (index: number) => {
+    setImageFiles((current) => current.filter((_, fileIndex) => fileIndex !== index));
+  };
+
+  const uploadSelectedCarImages = async () => {
+    const uploadedImageUrls: string[] = [];
+
+    for (const file of imageFiles) {
+      const uploadedImage = await uploadAdminCarImage(token, file);
+      uploadedImageUrls.push(uploadedImage.image_url);
+    }
+
+    return uploadedImageUrls;
   };
 
   const updateRatingInput =
@@ -353,7 +445,11 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
     setMessage('');
 
     try {
-      const payload = toCarInput(form);
+      const uploadedImageUrls = imageFiles.length > 0 ? await uploadSelectedCarImages() : [];
+      const payload = toCarInput({
+        ...form,
+        imageUrls: appendImageUrls(form.imageUrls, uploadedImageUrls),
+      });
       if (editingId) {
         await updateAdminCar(token, editingId, payload);
         setMessage('Vehicle updated.');
@@ -377,6 +473,11 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
 
   const handleEdit = (car: Car) => {
     setForm(formFromCar(car));
+    setImageFiles([]);
+    setIsImageDropActive(false);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
     setEditingId(car.id);
     setError('');
     setMessage('');
@@ -703,6 +804,55 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
                 <span>{t('Color')}</span>
                 <input value={form.color} onChange={updateField('color')} className={inputClass} maxLength={30} placeholder={t('Optional')} />
               </label>
+              <div className="md:col-span-2 space-y-3">
+                <span className="block text-sm text-gray-300">{t('Vehicle images')}</span>
+                <label
+                  onDrop={handleImageDrop}
+                  onDragOver={handleImageDragOver}
+                  onDragLeave={() => setIsImageDropActive(false)}
+                  className={`flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-5 text-center transition-colors ${
+                    isImageDropActive
+                      ? 'border-cyan-300 bg-cyan-500/15 text-cyan-100'
+                      : 'border-cyan-500/25 bg-black/40 text-gray-300 hover:border-cyan-400 hover:bg-cyan-500/10'
+                  }`}
+                >
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept={imageUploadAccept}
+                    multiple
+                    className="sr-only"
+                    onChange={handleImageFileChange}
+                  />
+                  <ImagePlus size={24} className="mb-2 text-cyan-300" />
+                  <span className="text-sm font-semibold">{isImageDropActive ? t('Drop images here') : t('Choose images')}</span>
+                </label>
+                {imageFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">{t('Selected files')}</p>
+                    <ul className="space-y-2">
+                      {imageFiles.map((file, index) => (
+                        <li
+                          key={`${file.name}-${file.lastModified}-${index}`}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-cyan-500/10 bg-black/35 px-3 py-2 text-sm text-gray-200"
+                        >
+                          <span className="min-w-0 truncate">
+                            {file.name} <span className="text-gray-500">({formatFileSize(file.size)})</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeImageFile(index)}
+                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-500/20 text-cyan-100 transition-colors hover:bg-cyan-500/10"
+                            aria-label={t('Remove selected image')}
+                          >
+                            <X size={15} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
               <label className={`${labelClass} md:col-span-2`}>
                 <span>{t('Image URLs')}</span>
                 <textarea

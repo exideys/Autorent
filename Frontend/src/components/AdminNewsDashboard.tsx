@@ -1,7 +1,7 @@
-import { Edit3, Loader2, Newspaper, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { Edit3, ImagePlus, Loader2, Newspaper, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
-import { ApiError, createAdminNews, deleteAdminNews, listAdminNews, updateAdminNews } from '../lib/api';
+import { ApiError, createAdminNews, deleteAdminNews, listAdminNews, updateAdminNews, uploadAdminNewsImage } from '../lib/api';
 import type { NewsArticle, NewsInput, NewsStatus } from '../types/api';
 
 interface AdminNewsDashboardProps {
@@ -30,6 +30,19 @@ const inputClass =
   'w-full rounded-lg border border-cyan-500/25 bg-black/60 px-3 py-2 text-sm text-white placeholder-gray-500 transition-colors focus:border-cyan-400 focus:outline-none';
 
 const labelClass = 'block space-y-2 text-sm text-gray-300';
+
+const supportedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const imageUploadAccept = supportedImageTypes.join(',');
+
+const isSupportedImageFile = (file: File) => supportedImageTypes.includes(file.type);
+
+const formatFileSize = (size: number) => {
+  if (size < 1024 * 1024) {
+    return `${Math.max(1, Math.round(size / 1024))} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+};
 
 const fallbackImageUrl = `${import.meta.env.BASE_URL}hero-main.png`;
 
@@ -71,6 +84,9 @@ const formFromArticle = (article: NewsArticle): NewsFormState => ({
 const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsDashboardProps) => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [form, setForm] = useState<NewsFormState>(emptyNewsForm);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isImageDropActive, setIsImageDropActive] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -100,7 +116,13 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
     'Title',
     'Summary',
     'Content',
+    'Cover Image',
     'Cover Image URL',
+    'Choose image',
+    'Drop image here',
+    'Selected file',
+    'Only JPG, PNG, WEBP, or GIF images can be uploaded.',
+    'Remove selected image',
     'Optional',
     'Status',
     'Draft',
@@ -171,7 +193,46 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
 
   const resetForm = () => {
     setForm(emptyNewsForm);
+    setImageFile(null);
+    setIsImageDropActive(false);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
     setEditingId(null);
+  };
+
+  const selectImageFile = (file?: File) => {
+    if (!file) {
+      return;
+    }
+
+    if (!isSupportedImageFile(file)) {
+      setError('Only JPG, PNG, WEBP, or GIF images can be uploaded.');
+      return;
+    }
+
+    setImageFile(file);
+    setError('');
+  };
+
+  const handleImageFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    selectImageFile(event.target.files?.[0]);
+    event.target.value = '';
+  };
+
+  const handleImageDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setIsImageDropActive(false);
+    selectImageFile(event.dataTransfer.files[0]);
+  };
+
+  const handleImageDragOver = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setIsImageDropActive(true);
+  };
+
+  const removeImageFile = () => {
+    setImageFile(null);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -181,7 +242,11 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
     setMessage('');
 
     try {
-      const payload = toNewsInput(form);
+      const uploadedImage = imageFile ? await uploadAdminNewsImage(token, imageFile) : null;
+      const payload = toNewsInput({
+        ...form,
+        imageUrl: uploadedImage?.image_url || form.imageUrl,
+      });
       if (editingId) {
         await updateAdminNews(token, editingId, payload);
         setMessage('News article updated.');
@@ -205,6 +270,11 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
 
   const handleEdit = (article: NewsArticle) => {
     setForm(formFromArticle(article));
+    setImageFile(null);
+    setIsImageDropActive(false);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
     setEditingId(article.id);
     setError('');
     setMessage('');
@@ -311,9 +381,48 @@ const AdminNewsDashboard = ({ token, onNewsChanged, onUnauthorized }: AdminNewsD
                 required
               />
             </label>
+            <div className="space-y-3">
+              <span className="block text-sm text-gray-300">{t('Cover Image')}</span>
+              <label
+                onDrop={handleImageDrop}
+                onDragOver={handleImageDragOver}
+                onDragLeave={() => setIsImageDropActive(false)}
+                className={`flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-5 text-center transition-colors ${
+                  isImageDropActive
+                    ? 'border-cyan-300 bg-cyan-500/15 text-cyan-100'
+                    : 'border-cyan-500/25 bg-black/40 text-gray-300 hover:border-cyan-400 hover:bg-cyan-500/10'
+                }`}
+              >
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept={imageUploadAccept}
+                  className="sr-only"
+                  onChange={handleImageFileChange}
+                />
+                <ImagePlus size={24} className="mb-2 text-cyan-300" />
+                <span className="text-sm font-semibold">{isImageDropActive ? t('Drop image here') : t('Choose image')}</span>
+              </label>
+              {imageFile && (
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-cyan-500/10 bg-black/35 px-3 py-2 text-sm text-gray-200">
+                  <span className="min-w-0 truncate">
+                    <span className="text-cyan-300">{t('Selected file')}:</span> {imageFile.name}{' '}
+                    <span className="text-gray-500">({formatFileSize(imageFile.size)})</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={removeImageFile}
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-500/20 text-cyan-100 transition-colors hover:bg-cyan-500/10"
+                    aria-label={t('Remove selected image')}
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              )}
+            </div>
             <label className={labelClass}>
               <span>{t('Cover Image URL')}</span>
-              <input value={form.imageUrl} onChange={updateField('imageUrl')} className={inputClass} placeholder={t('Optional')} maxLength={255} />
+              <input value={form.imageUrl} onChange={updateField('imageUrl')} className={inputClass} placeholder={t('Optional')} maxLength={2048} />
             </label>
             <label className={labelClass}>
               <span>{t('Status')}</span>

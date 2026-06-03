@@ -114,3 +114,43 @@ func TestRentalOrderServiceCreateRejectsInvalidDatesAndTime(t *testing.T) {
 		}
 	}
 }
+
+func TestRentalOrderServiceListByUserID(t *testing.T) {
+	store := fakeRentalOrderStore{
+		createFunc: func(context.Context, int64, models.RentalOrderInput, time.Time, time.Time, string, int) (*models.RentalOrder, error) {
+			return nil, nil
+		},
+		listFunc: func(_ context.Context, userID int64) ([]models.RentalOrder, error) {
+			if userID != 42 {
+				t.Fatalf("expected user id 42, got %d", userID)
+			}
+			return []models.RentalOrder{{ID: 1, UserID: userID}}, nil
+		},
+	}
+
+	service := NewRentalOrderService(store)
+	orders, err := service.ListByUserID(context.Background(), 42)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if len(orders) != 1 || orders[0].UserID != 42 {
+		t.Fatalf("unexpected orders: %+v", orders)
+	}
+}
+
+func TestRentalOrderServiceListByUserIDRejectsInvalidUserID(t *testing.T) {
+	service := NewRentalOrderService(fakeRentalOrderStore{
+		createFunc: func(context.Context, int64, models.RentalOrderInput, time.Time, time.Time, string, int) (*models.RentalOrder, error) {
+			return nil, nil
+		},
+		listFunc: func(context.Context, int64) ([]models.RentalOrder, error) {
+			t.Fatal("store should not be called")
+			return nil, nil
+		},
+	})
+
+	_, err := service.ListByUserID(context.Background(), 0)
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected ErrInvalidInput, got %v", err)
+	}
+}

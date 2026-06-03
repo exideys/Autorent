@@ -23,7 +23,7 @@ type NewsInput struct {
 	Title    string  `json:"title" binding:"required,max=120"`
 	Summary  string  `json:"summary" binding:"required,max=240"`
 	Content  string  `json:"content" binding:"required"`
-	ImageURL *string `json:"image_url,omitempty" binding:"omitempty,max=255"`
+	ImageURL *string `json:"image_url,omitempty" binding:"omitempty,max=2048"`
 	Status   string  `json:"status,omitempty" binding:"omitempty,max=30"`
 }
 
