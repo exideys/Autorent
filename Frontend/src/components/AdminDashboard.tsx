@@ -9,6 +9,7 @@ import {
   listAdminCars,
   listAdminUsers,
   rateAdminUser,
+  resolveApiAssetUrl,
   updateAdminCar,
   uploadAdminCarImage,
 } from '../lib/api';
@@ -86,7 +87,7 @@ const fallbackImageUrl = `${import.meta.env.BASE_URL}hero-main.png`;
 
 const mainImage = (car: Car) => {
   const selectedImage = car.images.find((image) => image.is_main) || car.images[0];
-  return selectedImage?.image_url || fallbackImageUrl;
+  return resolveApiAssetUrl(selectedImage?.image_url, fallbackImageUrl);
 };
 
 const optionalNumber = (value: string) => {

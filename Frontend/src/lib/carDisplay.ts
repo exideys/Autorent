@@ -1,4 +1,5 @@
 import type { Car } from '../types/api';
+import { resolveApiAssetUrl } from './api';
 
 export const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -10,7 +11,7 @@ export const fallbackImageUrl = `${import.meta.env.BASE_URL}hero-main.png`;
 
 export const mainImage = (car: Car) => {
   const selectedImage = car.images.find((image) => image.is_main) || car.images[0];
-  return selectedImage?.image_url || fallbackImageUrl;
+  return resolveApiAssetUrl(selectedImage?.image_url, fallbackImageUrl);
 };
 
 const fixedVehicleTerms = new Set(['SUV']);

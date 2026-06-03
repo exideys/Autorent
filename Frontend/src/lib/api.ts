@@ -29,6 +29,22 @@ const normalizeApiBaseUrl = (value?: string) => {
 
 const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
+const apiOrigin = () => API_BASE_URL.replace(/\/api$/, '');
+
+export const resolveApiAssetUrl = (value?: string | null, fallback = '') => {
+  const trimmed = (value || '').trim();
+  if (!trimmed) {
+    return fallback;
+  }
+  if (/^(https?:|data:|blob:)/i.test(trimmed)) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/api/') && /^https?:\/\//i.test(API_BASE_URL)) {
+    return `${apiOrigin()}${trimmed}`;
+  }
+  return trimmed;
+};
+
 export class ApiError extends Error {
   status: number;
 
