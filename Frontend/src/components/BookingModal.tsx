@@ -55,7 +55,7 @@ const BookingModal = ({ car, token, onCreated, onClose }: BookingModalProps) => 
     'Please fill in all booking fields.',
     'Return date cannot be before pickup date.',
     'Unable to create booking.',
-    'Booking created. You can view it in your profile.',
+    'Your order has been successfully accepted.',
     'Creating Booking...',
     'Booking Created',
     'Create Booking',
@@ -211,7 +211,7 @@ const BookingModal = ({ car, token, onCreated, onClose }: BookingModalProps) => 
           )}
           {isCreated && (
             <p className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-100">
-              {t('Booking created. You can view it in your profile.')}
+              {t('Your order has been successfully accepted.')}
             </p>
           )}
 
