@@ -26,7 +26,7 @@ func TestCORSConfigUsesConfiguredOriginsWithCredentials(t *testing.T) {
 	if !cfg.AllowCredentials {
 		t.Fatal("configured origins should allow credentials")
 	}
-	if !reflect.DeepEqual(cfg.AllowMethods, []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}) {
+	if !reflect.DeepEqual(cfg.AllowMethods, []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}) {
 		t.Fatalf("unexpected methods: %+v", cfg.AllowMethods)
 	}
 }

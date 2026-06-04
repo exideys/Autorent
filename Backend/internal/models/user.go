@@ -29,6 +29,13 @@ type UserWithPassword struct {
 	PasswordHash string
 }
 
+type GoogleUserInput struct {
+	GoogleSub string
+	FirstName string
+	LastName  string
+	Email     string
+}
+
 type RegisterInput struct {
 	Name      string `json:"name" binding:"omitempty,max=100"`
 	FirstName string `json:"first_name" binding:"omitempty,max=50"`
@@ -40,6 +47,16 @@ type RegisterInput struct {
 type LoginInput struct {
 	Email    string `json:"email" binding:"required,email,max=100"`
 	Password string `json:"password" binding:"required"`
+}
+
+type GoogleLoginInput struct {
+	Credential string `json:"credential" binding:"required"`
+}
+
+type UpdateCurrentUserInput struct {
+	FirstName string `json:"first_name" binding:"required,max=50"`
+	LastName  string `json:"last_name" binding:"required,max=50"`
+	Email     string `json:"email" binding:"required,email,max=100"`
 }
 
 type RateUserInput struct {

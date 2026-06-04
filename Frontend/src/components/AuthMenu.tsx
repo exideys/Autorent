@@ -1,7 +1,7 @@
 import { LogIn, LogOut, LayoutDashboard, UserCircle, UserPlus, UserRound, X } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
-import { login, registerUser } from '../lib/api';
+import { googleLogin, login, registerUser } from '../lib/api';
 import type { AuthResponse, User } from '../types/api';
 
 type AuthMode = 'login' | 'register';
@@ -23,6 +23,65 @@ const tabClass = (active: boolean) =>
     active ? 'bg-cyan-500 text-black' : 'text-gray-300 hover:bg-white/10'
   }`;
 
+const googleClientId = (import.meta.env.VITE_GOOGLE_AUTH_CLIENT_ID || '').trim();
+const googleScriptID = 'google-identity-services';
+const googleScriptSrc = 'https://accounts.google.com/gsi/client';
+
+type GoogleCredentialResponse = {
+  credential?: string;
+};
+
+type GoogleIdentityAPI = {
+  initialize: (config: { client_id: string; callback: (response: GoogleCredentialResponse) => void }) => void;
+  renderButton: (parent: HTMLElement, options: Record<string, string | number>) => void;
+  disableAutoSelect?: () => void;
+};
+
+type GoogleWindow = Window &
+  typeof globalThis & {
+    google?: {
+      accounts?: {
+        id?: GoogleIdentityAPI;
+      };
+    };
+  };
+
+let googleScriptPromise: Promise<void> | null = null;
+
+const googleIdentityAPI = () => (window as GoogleWindow).google?.accounts?.id;
+
+const loadGoogleIdentityScript = () => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return Promise.reject(new Error('Google login is unavailable.'));
+  }
+  if (googleIdentityAPI()) {
+    return Promise.resolve();
+  }
+  if (googleScriptPromise) {
+    return googleScriptPromise;
+  }
+
+  googleScriptPromise = new Promise((resolve, reject) => {
+    const existingScript = document.getElementById(googleScriptID) as HTMLScriptElement | null;
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(), { once: true });
+      existingScript.addEventListener('error', () => reject(new Error('Google login is unavailable.')), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = googleScriptID;
+    script.src = googleScriptSrc;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Google login is unavailable.'));
+    document.head.appendChild(script);
+  });
+
+  return googleScriptPromise;
+};
+
 const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminClick, onProfileClick }: AuthMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<AuthMode>('login');
@@ -33,6 +92,8 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const { t } = useTranslation([
     'Checking...',
     'Account',
@@ -52,6 +113,9 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
     'Repeat your password',
     'Passwords do not match',
     'Unable to complete request',
+    'Google login is unavailable.',
+    'Google login is not configured.',
+    'or',
     'Please wait...',
     'Create Account',
     user?.role,
@@ -71,6 +135,70 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
     setMode(nextMode);
     setError('');
   };
+
+  useEffect(() => {
+    if (!isOpen || user || !googleClientId || !googleButtonRef.current) {
+      return;
+    }
+
+    let isCancelled = false;
+    setError('');
+
+    loadGoogleIdentityScript()
+      .then(() => {
+        if (isCancelled || !googleButtonRef.current) {
+          return;
+        }
+
+        const identityAPI = googleIdentityAPI();
+        if (!identityAPI) {
+          throw new Error('Google login is unavailable.');
+        }
+
+        identityAPI.initialize({
+          client_id: googleClientId,
+          callback: async (response) => {
+            if (!response.credential) {
+              setError('Google login is unavailable.');
+              return;
+            }
+
+            setError('');
+            setIsGoogleSubmitting(true);
+            try {
+              const auth = await googleLogin({ credential: response.credential });
+              onAuthenticated(auth);
+              resetForm();
+              setIsOpen(false);
+            } catch (submitError) {
+              setError(submitError instanceof Error ? submitError.message : 'Unable to complete request');
+            } finally {
+              setIsGoogleSubmitting(false);
+            }
+          },
+        });
+
+        googleButtonRef.current.innerHTML = '';
+        identityAPI.renderButton(googleButtonRef.current, {
+          theme: 'filled_black',
+          size: 'large',
+          type: 'standard',
+          shape: 'rectangular',
+          text: mode === 'register' ? 'signup_with' : 'signin_with',
+          logo_alignment: 'left',
+          width: 304,
+        });
+      })
+      .catch((loadError) => {
+        if (!isCancelled) {
+          setError(loadError instanceof Error ? loadError.message : 'Google login is unavailable.');
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, mode, onAuthenticated, user]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -172,6 +300,7 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
               <button
                 type="button"
                 onClick={() => {
+                  googleIdentityAPI()?.disableAutoSelect?.();
                   onLogout();
                   setIsOpen(false);
                 }}
@@ -273,12 +402,30 @@ const AuthMenu = ({ user, isSessionLoading, onAuthenticated, onLogout, onAdminCl
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isGoogleSubmitting}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-black hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
               >
                 {mode === 'login' ? <LogIn size={16} /> : <UserPlus size={16} />}
                 {isSubmitting ? t('Please wait...') : mode === 'login' ? t('Login') : t('Create Account')}
               </button>
+
+              <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-gray-500">
+                <span className="h-px flex-1 bg-cyan-500/15" />
+                {t('or')}
+                <span className="h-px flex-1 bg-cyan-500/15" />
+              </div>
+
+              {googleClientId ? (
+                <div
+                  ref={googleButtonRef}
+                  className={`flex min-h-11 justify-center ${isGoogleSubmitting ? 'pointer-events-none opacity-60' : ''}`}
+                  aria-busy={isGoogleSubmitting}
+                />
+              ) : (
+                <p className="rounded-lg border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                  {t('Google login is not configured.')}
+                </p>
+              )}
             </form>
           )}
         </div>

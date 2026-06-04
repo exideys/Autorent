@@ -37,6 +37,16 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface GoogleLoginPayload {
+  credential: string;
+}
+
+export interface UpdateCurrentUserPayload {
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
 export interface RateUserPayload {
   rating: number;
 }

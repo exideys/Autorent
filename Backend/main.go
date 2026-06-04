@@ -94,7 +94,7 @@ func main() {
 	}
 
 	api := r.Group("/api")
-	handlers.RegisterAuthRoutes(api.Group("/auth"), userRepository, tokenManager, cfg.AdminSetupToken)
+	handlers.RegisterAuthRoutes(api.Group("/auth"), userRepository, tokenManager, cfg.AdminSetupToken, cfg.GoogleAuthClientID)
 	handlers.RegisterCarRoutes(api, carService)
 	handlers.RegisterRentalOrderRoutes(api, rentalOrderService, tokenManager)
 	handlers.RegisterAIRoutes(api, carRepository, aiExtractor)
@@ -133,7 +133,7 @@ func corsConfig(allowedOriginsEnv string) cors.Config {
 
 	return cors.Config{
 		AllowOrigins:     allowedOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Admin-Setup-Token"},
 		AllowCredentials: allowCredentials,
 	}
