@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AdminDashboard from './components/AdminDashboard';
 import AICarAssistant from './components/AICarAssistant';
+import AboutUsSection from './components/AboutUsSection';
 import AuthMenu from './components/AuthMenu';
 import ContactSection from './components/ContactSection';
 import CtaSection from './components/CtaSection';
@@ -80,6 +81,7 @@ const App = () => {
   const isProfilePage = activePage === 'profile';
   const isHome = activePage === 'home';
   const isNewsPage = activePage === 'news';
+  const isAboutPage = activePage === 'about';
 
   const navPages = useMemo(
     () => (user?.role === 'admin' ? [...pages, { key: 'admin' as PageKey, label: 'Admin' }] : pages),
@@ -199,6 +201,9 @@ const App = () => {
   const handleNavigate = (page: PageKey) => {
     setActivePage(page);
     setIsMenuOpen(false);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const handleAuthenticated = (nextAuth: AuthResponse) => {
@@ -293,6 +298,8 @@ const App = () => {
 
             {isNewsPage && <NewsListSection articles={news} isLoading={isNewsLoading} error={newsError} onRetry={loadNews} />}
 
+            {isAboutPage && <AboutUsSection />}
+
             {(isHome || activePage === 'how-it-works') && <HowItWorksSection items={translatedHowItWorksSteps} />}
 
             {(isHome || activePage === 'why-choose-us') && <WhyChooseUsSection items={translatedBenefits} />}
@@ -304,7 +311,7 @@ const App = () => {
         </>
       )}
 
-      <Footer contact={contactInfo} />
+      <Footer contact={contactInfo} onNavigate={handleNavigate} />
     </div>
   );
 };

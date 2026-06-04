@@ -3,6 +3,7 @@ export type PageKey =
   | 'services'
   | 'showroom'
   | 'news'
+  | 'about'
   | 'how-it-works'
   | 'why-choose-us'
   | 'contact'

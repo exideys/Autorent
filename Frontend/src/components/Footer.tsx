@@ -1,12 +1,13 @@
 import { Mail, Phone } from 'lucide-react';
 import { useTranslation } from '../i18n/TranslationContext';
-import type { ContactInfo } from '../types/site';
+import type { ContactInfo, PageKey } from '../types/site';
 
 interface FooterProps {
   contact: ContactInfo;
+  onNavigate: (page: PageKey) => void;
 }
 
-const Footer = ({ contact }: FooterProps) => {
+const Footer = ({ contact, onNavigate }: FooterProps) => {
   const { t } = useTranslation([
     'Driving the future of luxury transportation.',
     'Services',
@@ -21,6 +22,10 @@ const Footer = ({ contact }: FooterProps) => {
     'Contact',
     'All rights reserved.',
   ]);
+  const linkClass = 'text-left transition-colors hover:text-cyan-300';
+  const navigateTo = (page: PageKey) => {
+    onNavigate(page);
+  };
 
   return (
     <footer className="py-12 px-4 border-t border-cyan-500/20">
@@ -42,10 +47,22 @@ const Footer = ({ contact }: FooterProps) => {
           <div>
             <h4 className="text-lg font-semibold mb-4">{t('Company')}</h4>
             <ul className="space-y-2 text-gray-300">
-              <li>{t('About Us')}</li>
+              <li>
+                <button type="button" onClick={() => navigateTo('about')} className={linkClass}>
+                  {t('About Us')}
+                </button>
+              </li>
               <li>{t('Careers')}</li>
-              <li>{t('Press')}</li>
-              <li>{t('Contact')}</li>
+              <li>
+                <button type="button" onClick={() => navigateTo('news')} className={linkClass}>
+                  {t('Press')}
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => navigateTo('contact')} className={linkClass}>
+                  {t('Contact')}
+                </button>
+              </li>
             </ul>
           </div>
           <div>

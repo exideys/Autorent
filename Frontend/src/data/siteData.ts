@@ -37,6 +37,10 @@ export const pageContent: Record<PageKey, PageContent> = {
     title: 'AutoRent News',
     subtitle: 'Read the latest AutoRent fleet updates, announcements, and service notes.',
   },
+  about: {
+    title: 'About AutoRent',
+    subtitle: 'Premium mobility shaped around luxury, clarity, and personal service.',
+  },
   'how-it-works': {
     title: 'How It Works',
     subtitle: 'Reserve your next luxury rental in three simple steps.',
