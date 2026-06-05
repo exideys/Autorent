@@ -77,6 +77,50 @@ func TestUserRepositoryCreateDuplicate(t *testing.T) {
 	}
 }
 
+func TestUserRepositoryCreateGoogle(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+
+	now := time.Now()
+	updatedAt := now.Add(time.Minute)
+	mock.ExpectExec("INSERT INTO users").
+		WithArgs("Google", "Client", "google@example.com", "google-sub", models.UserRoleUser).
+		WillReturnResult(sqlmock.NewResult(9, 1))
+	mock.ExpectQuery("SELECT id, first_name").
+		WithArgs(int64(9)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id",
+			"first_name",
+			"last_name",
+			"name",
+			"email",
+			"rating",
+			"rating_count",
+			"role",
+			"status",
+			"created_at",
+			"updated_at",
+		}).AddRow(9, "Google", "Client", "Google Client", "google@example.com", 5.0, 0, models.UserRoleUser, "active", now, updatedAt))
+
+	repo := NewUserRepository(db)
+	user, err := repo.CreateGoogle(context.Background(), models.GoogleUserInput{
+		FirstName: " Google ",
+		LastName:  " Client ",
+		Email:     " GOOGLE@EXAMPLE.COM ",
+		GoogleSub: " google-sub ",
+	})
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if user.ID != 9 || user.Email != "google@example.com" || user.Name != "Google Client" {
+		t.Fatalf("unexpected user: %+v", user)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
 func TestUserRepositoryGetByEmail(t *testing.T) {
 	db, mock, cleanup := newMockDB(t)
 	defer cleanup()
@@ -107,6 +151,43 @@ func TestUserRepositoryGetByEmail(t *testing.T) {
 	}
 
 	if user.ID != 5 || user.PasswordHash != "hash" || user.Role != models.UserRoleAdmin || user.RatingCount != 3 {
+		t.Fatalf("unexpected user: %+v", user)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
+func TestUserRepositoryGetByEmailAllowsNullablePasswordHash(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+
+	now := time.Now()
+	updatedAt := now.Add(time.Minute)
+	mock.ExpectQuery("SELECT id, first_name").
+		WithArgs("google@example.com").
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id",
+			"first_name",
+			"last_name",
+			"name",
+			"email",
+			"password_hash",
+			"rating",
+			"rating_count",
+			"role",
+			"status",
+			"created_at",
+			"updated_at",
+		}).AddRow(6, "Google", "Client", "Google Client", "google@example.com", nil, 5.0, 0, models.UserRoleUser, "active", now, updatedAt))
+
+	repo := NewUserRepository(db)
+	user, err := repo.GetByEmail(context.Background(), " GOOGLE@EXAMPLE.COM ")
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if user.ID != 6 || user.PasswordHash != "" {
 		t.Fatalf("unexpected user: %+v", user)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -145,6 +226,42 @@ func TestUserRepositoryGetByEmailNotFound(t *testing.T) {
 	}
 }
 
+func TestUserRepositoryGetByGoogleSub(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+
+	now := time.Now()
+	updatedAt := now.Add(time.Minute)
+	mock.ExpectQuery("SELECT id, first_name").
+		WithArgs("google-sub").
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id",
+			"first_name",
+			"last_name",
+			"name",
+			"email",
+			"rating",
+			"rating_count",
+			"role",
+			"status",
+			"created_at",
+			"updated_at",
+		}).AddRow(5, "Google", "Client", "Google Client", "google@example.com", 4.9, 2, models.UserRoleUser, "active", now, updatedAt))
+
+	repo := NewUserRepository(db)
+	user, err := repo.GetByGoogleSub(context.Background(), " google-sub ")
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if user.ID != 5 || user.Email != "google@example.com" {
+		t.Fatalf("unexpected user: %+v", user)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
 func TestUserRepositoryGetByIDNotFound(t *testing.T) {
 	db, mock, cleanup := newMockDB(t)
 	defer cleanup()
@@ -169,6 +286,109 @@ func TestUserRepositoryGetByIDNotFound(t *testing.T) {
 	_, err := repo.GetByID(context.Background(), 99)
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
+func TestUserRepositoryLinkGoogleSub(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+
+	now := time.Now()
+	updatedAt := now.Add(time.Minute)
+	mock.ExpectExec("UPDATE users").
+		WithArgs("google-sub", int64(5), "google-sub").
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery("SELECT id, first_name").
+		WithArgs(int64(5)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id",
+			"first_name",
+			"last_name",
+			"name",
+			"email",
+			"rating",
+			"rating_count",
+			"role",
+			"status",
+			"created_at",
+			"updated_at",
+		}).AddRow(5, "Existing", "Client", "Existing Client", "client@example.com", 5.0, 0, models.UserRoleUser, "active", now, updatedAt))
+
+	repo := NewUserRepository(db)
+	user, err := repo.LinkGoogleSub(context.Background(), 5, " google-sub ")
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if user.ID != 5 || user.Email != "client@example.com" {
+		t.Fatalf("unexpected user: %+v", user)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
+func TestUserRepositoryUpdateProfile(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+
+	now := time.Now()
+	updatedAt := now.Add(time.Minute)
+	mock.ExpectExec("UPDATE users").
+		WithArgs("Updated", "Client", "updated@example.com", int64(8)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery("SELECT id, first_name").
+		WithArgs(int64(8)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id",
+			"first_name",
+			"last_name",
+			"name",
+			"email",
+			"rating",
+			"rating_count",
+			"role",
+			"status",
+			"created_at",
+			"updated_at",
+		}).AddRow(8, "Updated", "Client", "Updated Client", "updated@example.com", 4.7, 3, models.UserRoleUser, "active", now, updatedAt))
+
+	repo := NewUserRepository(db)
+	user, err := repo.UpdateProfile(context.Background(), 8, models.UpdateCurrentUserInput{
+		FirstName: " Updated ",
+		LastName:  " Client ",
+		Email:     " UPDATED@EXAMPLE.COM ",
+	})
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if user.ID != 8 || user.Email != "updated@example.com" || user.Name != "Updated Client" {
+		t.Fatalf("unexpected user: %+v", user)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet sql expectations: %v", err)
+	}
+}
+
+func TestUserRepositoryUpdateProfileDuplicate(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+
+	mock.ExpectExec("UPDATE users").
+		WillReturnError(&mysql.MySQLError{Number: 1062, Message: "duplicate entry"})
+
+	repo := NewUserRepository(db)
+	_, err := repo.UpdateProfile(context.Background(), 8, models.UpdateCurrentUserInput{
+		FirstName: "Updated",
+		LastName:  "Client",
+		Email:     "taken@example.com",
+	})
+	if !errors.Is(err, ErrDuplicate) {
+		t.Fatalf("expected ErrDuplicate, got %v", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("unmet sql expectations: %v", err)

@@ -1,7 +1,7 @@
-import { CalendarDays, Hash, LayoutDashboard, LogOut, Mail, Shield, Star, UserCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { CalendarDays, Hash, LayoutDashboard, LogOut, Mail, Pencil, Save, Shield, Star, UserCircle, X } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
-import { ApiError, listMyRentalOrders } from '../lib/api';
+import { ApiError, listMyRentalOrders, updateCurrentUser } from '../lib/api';
 import type { RentalOrder, User } from '../types/api';
 
 interface ProfilePageProps {
@@ -10,6 +10,7 @@ interface ProfilePageProps {
   onAdminClick: () => void;
   onLogout: () => void;
   onShowroomClick: () => void;
+  onUserUpdated: (user: User) => void;
 }
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -41,10 +42,21 @@ const initialsFor = (name: string) => {
   return initials || 'AR';
 };
 
-const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: ProfilePageProps) => {
+const profileInputClass =
+  'h-11 w-full rounded-lg border border-cyan-500/25 bg-black/60 px-3 text-sm text-white placeholder-gray-500 transition-colors focus:border-cyan-300 focus:outline-none';
+
+const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick, onUserUpdated }: ProfilePageProps) => {
   const [orders, setOrders] = useState<RentalOrder[]>([]);
   const [isOrdersLoading, setIsOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState('');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [profileForm, setProfileForm] = useState({
+    firstName: user.first_name || '',
+    lastName: user.last_name || '',
+    email: user.email || '',
+  });
   const displayName = user.name?.trim();
   const firstName = user.first_name?.trim();
   const lastName = user.last_name?.trim();
@@ -65,6 +77,14 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: P
     'Sign Out',
     'Account details',
     'Your current session profile from AutoRent authentication.',
+    'Edit profile',
+    'Save changes',
+    'Cancel',
+    'Please wait...',
+    'Unable to update profile',
+    'First name is required.',
+    'Last name is required.',
+    'Email is required.',
     'ID',
     'First name',
     'Last name',
@@ -87,12 +107,23 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: P
     role,
     status,
     ordersError,
+    profileError,
     ...orders.map((order) => order.status),
   ]);
   const displayDate = (value: string) => {
     const formattedDate = formatDate(value);
     return formattedDate === 'Not available' ? t('Not available') : formattedDate;
   };
+
+  useEffect(() => {
+    setProfileForm({
+      firstName: user.first_name || '',
+      lastName: user.last_name || '',
+      email: user.email || '',
+    });
+    setProfileError('');
+    setIsEditingProfile(false);
+  }, [user.email, user.first_name, user.id, user.last_name]);
 
   useEffect(() => {
     if (!token) {
@@ -130,6 +161,62 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: P
       isMounted = false;
     };
   }, [onLogout, token]);
+
+  const updateProfileField = (field: keyof typeof profileForm, value: string) => {
+    setProfileForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleCancelProfileEdit = () => {
+    setProfileForm({
+      firstName: user.first_name || '',
+      lastName: user.last_name || '',
+      email: user.email || '',
+    });
+    setProfileError('');
+    setIsEditingProfile(false);
+  };
+
+  const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextFirstName = profileForm.firstName.trim();
+    const nextLastName = profileForm.lastName.trim();
+    const nextEmail = profileForm.email.trim();
+
+    if (!nextFirstName) {
+      setProfileError('First name is required.');
+      return;
+    }
+    if (!nextLastName) {
+      setProfileError('Last name is required.');
+      return;
+    }
+    if (!nextEmail) {
+      setProfileError('Email is required.');
+      return;
+    }
+
+    setIsProfileSaving(true);
+    setProfileError('');
+    try {
+      const updatedUser = await updateCurrentUser(token, {
+        first_name: nextFirstName,
+        last_name: nextLastName,
+        email: nextEmail,
+      });
+      onUserUpdated(updatedUser);
+      setIsEditingProfile(false);
+    } catch (saveError) {
+      setProfileError(saveError instanceof Error ? saveError.message : 'Unable to update profile');
+      if (saveError instanceof ApiError && saveError.status === 401) {
+        onLogout();
+      }
+    } finally {
+      setIsProfileSaving(false);
+    }
+  };
 
   return (
     <main className="min-h-screen px-4 py-28">
@@ -177,8 +264,88 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick }: P
           </section>
 
           <section className="rounded-2xl border border-cyan-500/20 bg-black/35 p-6">
-            <h2 className="text-2xl font-bold text-white">{t('Account details')}</h2>
-            <p className="mt-2 text-gray-400">{t('Your current session profile from AutoRent authentication.')}</p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white">{t('Account details')}</h2>
+                <p className="mt-2 text-gray-400">{t('Your current session profile from AutoRent authentication.')}</p>
+              </div>
+              {!isEditingProfile && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingProfile(true)}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-4 py-2 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-500/10"
+                >
+                  <Pencil size={16} />
+                  {t('Edit profile')}
+                </button>
+              )}
+            </div>
+
+            {isEditingProfile && (
+              <form onSubmit={handleProfileSubmit} className="mt-6 rounded-xl border border-cyan-500/15 bg-black/35 p-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block space-y-2 text-sm text-gray-300">
+                    <span>{t('First name')}</span>
+                    <input
+                      type="text"
+                      value={profileForm.firstName}
+                      onChange={(event) => updateProfileField('firstName', event.target.value)}
+                      className={profileInputClass}
+                      maxLength={50}
+                      required
+                    />
+                  </label>
+                  <label className="block space-y-2 text-sm text-gray-300">
+                    <span>{t('Last name')}</span>
+                    <input
+                      type="text"
+                      value={profileForm.lastName}
+                      onChange={(event) => updateProfileField('lastName', event.target.value)}
+                      className={profileInputClass}
+                      maxLength={50}
+                      required
+                    />
+                  </label>
+                  <label className="block space-y-2 text-sm text-gray-300 sm:col-span-2">
+                    <span>{t('Email')}</span>
+                    <input
+                      type="email"
+                      value={profileForm.email}
+                      onChange={(event) => updateProfileField('email', event.target.value)}
+                      className={profileInputClass}
+                      maxLength={100}
+                      required
+                    />
+                  </label>
+                </div>
+
+                {profileError && (
+                  <p className="mt-4 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200" role="alert">
+                    {t(profileError)}
+                  </p>
+                )}
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="submit"
+                    disabled={isProfileSaving}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-3 text-sm font-semibold text-black transition-colors hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Save size={16} />
+                    {isProfileSaving ? t('Please wait...') : t('Save changes')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelProfileEdit}
+                    disabled={isProfileSaving}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-4 py-3 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <X size={16} />
+                    {t('Cancel')}
+                  </button>
+                </div>
+              </form>
+            )}
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <div className="rounded-xl border border-cyan-500/10 bg-black/35 p-4">

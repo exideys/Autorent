@@ -64,6 +64,15 @@ const clearStoredAuth = () => {
   }
 };
 
+const disableGoogleAutoSelect = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const googleIdentity = (window as { google?: { accounts?: { id?: { disableAutoSelect?: () => void } } } }).google?.accounts?.id;
+  googleIdentity?.disableAutoSelect?.();
+};
+
 const App = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activePage, setActivePage] = useState<PageKey>('home');
@@ -211,7 +220,23 @@ const App = () => {
     setAuth(nextAuth);
   };
 
+  const handleUserUpdated = (updatedUser: AuthResponse['user']) => {
+    setAuth((currentAuth) => {
+      if (!currentAuth) {
+        return currentAuth;
+      }
+
+      const nextAuth = {
+        ...currentAuth,
+        user: updatedUser,
+      };
+      saveAuth(nextAuth);
+      return nextAuth;
+    });
+  };
+
   const handleLogout = () => {
+    disableGoogleAutoSelect();
     clearStoredAuth();
     setAuth(null);
     if (activePage === 'admin' || activePage === 'profile') {
@@ -252,6 +277,7 @@ const App = () => {
           onAdminClick={() => handleNavigate('admin')}
           onLogout={handleLogout}
           onShowroomClick={() => handleNavigate('showroom')}
+          onUserUpdated={handleUserUpdated}
         />
       ) : (
         <>

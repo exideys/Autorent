@@ -3,11 +3,13 @@ CREATE TABLE IF NOT EXISTS users (
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(30) NOT NULL DEFAULT 'user',
-    status VARCHAR(30) NOT NULL DEFAULT 'active',
+    password_hash VARCHAR(255) NULL,
     rating DECIMAL(2,1) NOT NULL DEFAULT 5.0,
     rating_count INT NOT NULL DEFAULT 0,
+    role VARCHAR(30) NOT NULL DEFAULT 'user',
+    status VARCHAR(30) NOT NULL DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    google_sub VARCHAR(255) NULL,
+    UNIQUE KEY users_google_sub_unique (google_sub)
 );

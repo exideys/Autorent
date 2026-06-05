@@ -27,6 +27,7 @@ type Config struct {
 	GoogleDriveOAuthRefreshToken string
 	GoogleDriveCarsFolderID      string
 	GoogleDriveNewsFolderID      string
+	GoogleAuthClientID           string
 	ImageUploadMaxBytes          int64
 }
 
@@ -54,6 +55,7 @@ func Load() (*Config, error) {
 	googleDriveOAuthRefreshToken := getEnv("GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN", "")
 	googleDriveCarsFolderID := normalizeGoogleDriveFolderID(getEnvAny([]string{"GOOGLE_DRIVE_CARS_FOLDER_ID", "GOOGLE_DRIVE_CARS_FOLDER_URL"}, ""))
 	googleDriveNewsFolderID := normalizeGoogleDriveFolderID(getEnvAny([]string{"GOOGLE_DRIVE_NEWS_FOLDER_ID", "GOOGLE_DRIVE_NEWS_FOLDER_URL"}, ""))
+	googleAuthClientID := getEnv("GOOGLE_AUTH_CLIENT_ID", "")
 	imageUploadMaxBytes := getEnvInt64("IMAGE_UPLOAD_MAX_BYTES", 10*1024*1024)
 
 	tlsConfigName, err := resolveTLSConfig(dbTLS, dbHost)
@@ -90,6 +92,7 @@ func Load() (*Config, error) {
 		GoogleDriveOAuthRefreshToken: googleDriveOAuthRefreshToken,
 		GoogleDriveCarsFolderID:      googleDriveCarsFolderID,
 		GoogleDriveNewsFolderID:      googleDriveNewsFolderID,
+		GoogleAuthClientID:           googleAuthClientID,
 		ImageUploadMaxBytes:          imageUploadMaxBytes,
 	}, nil
 }

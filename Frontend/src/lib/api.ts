@@ -5,6 +5,7 @@ import type {
   Car,
   CarInput,
   CarRecommendationResponse,
+  GoogleLoginPayload,
   ImageUploadResponse,
   LoginPayload,
   NewsArticle,
@@ -14,6 +15,7 @@ import type {
   RentalOrder,
   RentalOrderInput,
   TranslationResponse,
+  UpdateCurrentUserPayload,
   User,
 } from '../types/api';
 
@@ -141,9 +143,22 @@ export const registerUser = (payload: RegisterPayload) =>
     body: payload,
   });
 
+export const googleLogin = (payload: GoogleLoginPayload) =>
+  apiRequest<AuthResponse>('/auth/google', {
+    method: 'POST',
+    body: payload,
+  });
+
 export const getCurrentUser = (token: string) =>
   apiRequest<User>('/auth/me', {
     token,
+  });
+
+export const updateCurrentUser = (token: string, payload: UpdateCurrentUserPayload) =>
+  apiRequest<User>('/auth/me', {
+    method: 'PATCH',
+    token,
+    body: payload,
   });
 
 export const createRentalOrder = (token: string, payload: RentalOrderInput) =>

@@ -44,6 +44,26 @@ func (r *UserRepository) Create(ctx context.Context, input models.RegisterInput,
 	return r.GetByID(ctx, userID)
 }
 
+func (r *UserRepository) CreateGoogle(ctx context.Context, input models.GoogleUserInput) (*models.User, error) {
+	result, err := r.db.ExecContext(ctx, `
+		INSERT INTO users (first_name, last_name, email, password_hash, google_sub, role)
+		VALUES (?, ?, ?, NULL, ?, ?)
+	`, strings.TrimSpace(input.FirstName), strings.TrimSpace(input.LastName), normalizeEmail(input.Email), strings.TrimSpace(input.GoogleSub), models.UserRoleUser)
+	if err != nil {
+		if isDuplicateEntry(err) {
+			return nil, ErrDuplicate
+		}
+		return nil, err
+	}
+
+	userID, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+
+	return r.GetByID(ctx, userID)
+}
+
 func (r *UserRepository) GetByID(ctx context.Context, id int64) (*models.User, error) {
 	var user models.User
 	err := r.db.QueryRowContext(ctx, `
@@ -76,6 +96,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*models.User, e
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.UserWithPassword, error) {
 	var user models.UserWithPassword
+	var passwordHash sql.NullString
 	err := r.db.QueryRowContext(ctx, `
 		SELECT id, first_name, last_name, TRIM(CONCAT_WS(' ', first_name, last_name)) AS name,
 			email, password_hash, rating, rating_count, role, status, created_at, updated_at
@@ -87,7 +108,38 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.
 		&user.LastName,
 		&user.Name,
 		&user.Email,
-		&user.PasswordHash,
+		&passwordHash,
+		&user.Rating,
+		&user.RatingCount,
+		&user.Role,
+		&user.Status,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	user.PasswordHash = passwordHash.String
+	return &user, nil
+}
+
+func (r *UserRepository) GetByGoogleSub(ctx context.Context, googleSub string) (*models.User, error) {
+	var user models.User
+	err := r.db.QueryRowContext(ctx, `
+		SELECT id, first_name, last_name, TRIM(CONCAT_WS(' ', first_name, last_name)) AS name,
+			email, rating, rating_count, role, status, created_at, updated_at
+		FROM users
+		WHERE google_sub = ?
+	`, strings.TrimSpace(googleSub)).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.Name,
+		&user.Email,
 		&user.Rating,
 		&user.RatingCount,
 		&user.Role,
@@ -103,6 +155,46 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.
 	}
 
 	return &user, nil
+}
+
+func (r *UserRepository) LinkGoogleSub(ctx context.Context, id int64, googleSub string) (*models.User, error) {
+	result, err := r.db.ExecContext(ctx, `
+		UPDATE users
+		SET google_sub = ?
+		WHERE id = ? AND (google_sub IS NULL OR google_sub = ?)
+	`, strings.TrimSpace(googleSub), id, strings.TrimSpace(googleSub))
+	if err != nil {
+		if isDuplicateEntry(err) {
+			return nil, ErrDuplicate
+		}
+		return nil, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if rowsAffected == 0 {
+		return nil, ErrDuplicate
+	}
+
+	return r.GetByID(ctx, id)
+}
+
+func (r *UserRepository) UpdateProfile(ctx context.Context, id int64, input models.UpdateCurrentUserInput) (*models.User, error) {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE users
+		SET first_name = ?, last_name = ?, email = ?
+		WHERE id = ?
+	`, strings.TrimSpace(input.FirstName), strings.TrimSpace(input.LastName), normalizeEmail(input.Email), id)
+	if err != nil {
+		if isDuplicateEntry(err) {
+			return nil, ErrDuplicate
+		}
+		return nil, err
+	}
+
+	return r.GetByID(ctx, id)
 }
 
 func (r *UserRepository) ListCustomers(ctx context.Context) ([]models.User, error) {
