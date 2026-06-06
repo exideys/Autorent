@@ -15,6 +15,7 @@ import PopularCarsSection from './components/PopularCarsSection';
 import ProfilePage from './components/ProfilePage';
 import ServicesSection from './components/ServicesSection';
 import ShowroomSection from './components/ShowroomSection';
+import SupportChatWidget from './components/SupportChatWidget';
 import TranslationNotice from './components/TranslationNotice';
 import WhyChooseUsSection from './components/WhyChooseUsSection';
 import {
@@ -338,6 +339,7 @@ const App = () => {
       )}
 
       <Footer contact={contactInfo} onNavigate={handleNavigate} />
+      {!isAdminPage && <SupportChatWidget token={auth?.token} user={user} onUnauthorized={handleLogout} />}
     </div>
   );
 };

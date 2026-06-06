@@ -39,20 +39,23 @@ func main() {
 		log.Printf("DEEPL_API_KEY is set. Ukrainian translation will use endpoint: %s", cfg.DeepLAPIURL)
 	}
 	var imageStorage handlers.ImageStorage
+	var supportFileStorage handlers.SupportFileStorage
 	driveStorage, err := storage.NewGoogleDriveStorage(context.Background(), storage.GoogleDriveConfig{
 		OAuthClientID:     cfg.GoogleDriveOAuthClientID,
 		OAuthClientSecret: cfg.GoogleDriveOAuthClientSecret,
 		OAuthRefreshToken: cfg.GoogleDriveOAuthRefreshToken,
 		CarsFolderID:      cfg.GoogleDriveCarsFolderID,
 		NewsFolderID:      cfg.GoogleDriveNewsFolderID,
+		SupportFolderID:   cfg.GoogleDriveSupportFolderID,
 	})
 	if err != nil {
-		log.Printf("Google Drive image storage disabled: %v", err)
+		log.Printf("Google Drive storage disabled: %v", err)
 	} else if driveStorage == nil {
-		log.Println("Google Drive image storage disabled: folder ids are not configured.")
+		log.Println("Google Drive storage disabled: folder ids are not configured.")
 	} else {
 		imageStorage = driveStorage
-		log.Printf("Google Drive image storage enabled using %s auth.", driveStorage.AuthMode())
+		supportFileStorage = driveStorage
+		log.Printf("Google Drive storage enabled using %s auth.", driveStorage.AuthMode())
 	}
 
 	// Connect to database
@@ -82,6 +85,8 @@ func main() {
 	rentalOrderService := services.NewRentalOrderService(rentalOrderRepository)
 	userRepository := repository.NewUserRepository(db)
 	newsRepository := repository.NewNewsRepository(db)
+	supportRepository := repository.NewSupportRepository(db)
+	supportEvents := handlers.NewSupportEventBroker()
 	var aiExtractor ai.CarFilterExtractor
 	aiExtractor, err = ai.NewGeminiExtractor(context.Background(), cfg.GeminiAPIKey, cfg.GeminiModel)
 	if err != nil {
@@ -101,6 +106,7 @@ func main() {
 	handlers.RegisterTranslationRoutes(api, translator)
 	handlers.RegisterNewsRoutes(api, newsRepository)
 	handlers.RegisterImageRoutes(api, imageStorage)
+	handlers.RegisterSupportRoutes(api, supportRepository, supportFileStorage, supportEvents, tokenManager, cfg.SupportAttachmentMaxBytes)
 
 	adminAPI := api.Group("/admin")
 	adminAPI.Use(handlers.RequireAdmin(tokenManager))
@@ -109,6 +115,7 @@ func main() {
 	handlers.RegisterAdminUserRoutes(adminAPI, userRepository)
 	handlers.RegisterAdminRentalOrderRoutes(adminAPI, rentalOrderService)
 	handlers.RegisterAdminNewsRoutes(adminAPI, newsRepository)
+	handlers.RegisterAdminSupportRoutes(adminAPI, supportRepository, supportFileStorage, supportEvents, cfg.SupportAttachmentMaxBytes)
 
 	// Get port from environment or default
 	port := os.Getenv("PORT")

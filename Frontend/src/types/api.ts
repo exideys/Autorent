@@ -142,6 +142,48 @@ export interface ImageUploadResponse {
   drive_url?: string;
 }
 
+export interface SupportAttachment {
+  id: number;
+  message_id: number;
+  file_name: string;
+  content_type: string;
+  file_size: number;
+  drive_file_id: string;
+  file_url: string;
+  drive_url?: string;
+  created_at: string;
+}
+
+export interface SupportMessage {
+  id: number;
+  conversation_id: number;
+  sender_id: number;
+  sender_role: 'user' | 'admin' | string;
+  body: string;
+  created_at: string;
+  attachments?: SupportAttachment[];
+}
+
+export interface SupportConversation {
+  id: number;
+  user_id: number;
+  user?: User;
+  status: string;
+  last_message_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  messages?: SupportMessage[];
+}
+
+export interface SupportRealtimeEvent {
+  event_type?: 'message' | 'presence' | string;
+  conversation_id: number;
+  message_id: number;
+  user_id: number;
+  sender_role: 'user' | 'admin' | string;
+  admin_online?: boolean;
+}
+
 export interface RentalOrderCarSummary {
   id: number;
   brand: string;

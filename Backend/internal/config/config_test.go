@@ -26,8 +26,10 @@ func TestLoadBuildsDatabaseAndAuthConfigFromEnv(t *testing.T) {
 	t.Setenv("GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN", "oauth-refresh-token")
 	t.Setenv("GOOGLE_DRIVE_CARS_FOLDER_ID", "cars-folder")
 	t.Setenv("GOOGLE_DRIVE_NEWS_FOLDER_ID", "https://drive.google.com/drive/folders/news-folder?usp=sharing")
+	t.Setenv("GOOGLE_DRIVE_SUPPORT_FOLDER_URL", "https://drive.google.com/open?id=support-folder")
 	t.Setenv("GOOGLE_AUTH_CLIENT_ID", "google-auth-client-id")
 	t.Setenv("IMAGE_UPLOAD_MAX_BYTES", "123456")
+	t.Setenv("SUPPORT_ATTACHMENT_MAX_BYTES", "654321")
 
 	cfg, err := Load()
 	if err != nil {
@@ -93,11 +95,17 @@ func TestLoadBuildsDatabaseAndAuthConfigFromEnv(t *testing.T) {
 	if cfg.GoogleDriveNewsFolderID != "news-folder" {
 		t.Fatalf("expected parsed news folder id, got %q", cfg.GoogleDriveNewsFolderID)
 	}
+	if cfg.GoogleDriveSupportFolderID != "support-folder" {
+		t.Fatalf("expected parsed support folder id, got %q", cfg.GoogleDriveSupportFolderID)
+	}
 	if cfg.GoogleAuthClientID != "google-auth-client-id" {
 		t.Fatalf("expected configured Google auth client id")
 	}
 	if cfg.ImageUploadMaxBytes != 123456 {
 		t.Fatalf("expected configured upload limit, got %d", cfg.ImageUploadMaxBytes)
+	}
+	if cfg.SupportAttachmentMaxBytes != 654321 {
+		t.Fatalf("expected configured support attachment limit, got %d", cfg.SupportAttachmentMaxBytes)
 	}
 }
 
