@@ -81,6 +81,10 @@ func (h *UploadHandler) ProxyGoogleDriveImage(c *gin.Context) {
 		return
 	}
 	defer file.Body.Close()
+	if !strings.HasPrefix(strings.ToLower(file.ContentType), "image/") {
+		respondImageStorageError(c, storage.ErrUnsupportedContent)
+		return
+	}
 
 	contentType := file.ContentType
 	if contentType == "" {

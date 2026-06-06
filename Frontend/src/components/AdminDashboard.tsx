@@ -1,4 +1,4 @@
-import { Car as CarIcon, Edit3, ImagePlus, Newspaper, Plus, RefreshCw, Save, Star, Trash2, Users, X } from 'lucide-react';
+import { Car as CarIcon, Edit3, ImagePlus, MessageSquare, Newspaper, Plus, RefreshCw, Save, Star, Trash2, Users, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { displayVehicleTerm, translatableVehicleTerms } from '../lib/carDisplay';
@@ -15,6 +15,7 @@ import {
 } from '../lib/api';
 import type { Car, CarInput, User } from '../types/api';
 import AdminNewsDashboard from './AdminNewsDashboard';
+import AdminSupportDashboard from './AdminSupportDashboard';
 
 interface AdminDashboardProps {
   token: string;
@@ -23,7 +24,7 @@ interface AdminDashboardProps {
   onUnauthorized: () => void;
 }
 
-type AdminPanel = 'fleet' | 'news';
+type AdminPanel = 'fleet' | 'news' | 'messages';
 
 interface CarFormState {
   brand: string;
@@ -257,6 +258,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
     'Cancel editing',
     'Fleet',
     'News',
+    'Messages',
     error,
     message,
     ...statusOptions,
@@ -550,10 +552,22 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
             <Newspaper size={16} />
             {t('News')}
           </button>
+          <button
+            type="button"
+            onClick={() => setActivePanel('messages')}
+            className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
+              activePanel === 'messages' ? 'bg-cyan-500 text-black' : 'text-cyan-100 hover:bg-cyan-500/10'
+            }`}
+          >
+            <MessageSquare size={16} />
+            {t('Messages')}
+          </button>
         </div>
 
         {activePanel === 'news' ? (
           <AdminNewsDashboard token={token} onNewsChanged={onNewsChanged} onUnauthorized={onUnauthorized} />
+        ) : activePanel === 'messages' ? (
+          <AdminSupportDashboard token={token} onUnauthorized={onUnauthorized} />
         ) : (
           <>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

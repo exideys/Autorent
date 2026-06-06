@@ -39,13 +39,15 @@ type GoogleDriveConfig struct {
 	OAuthRefreshToken string
 	CarsFolderID      string
 	NewsFolderID      string
+	SupportFolderID   string
 }
 
 type GoogleDriveStorage struct {
-	service      *drive.Service
-	carsFolderID string
-	newsFolderID string
-	authMode     string
+	service         *drive.Service
+	carsFolderID    string
+	newsFolderID    string
+	supportFolderID string
+	authMode        string
 }
 
 type ImageUpload struct {
@@ -61,6 +63,18 @@ type ImageUploadResult struct {
 	DriveWebContentURL string
 }
 
+type FileUpload struct {
+	FileName    string
+	ContentType string
+	Body        io.Reader
+}
+
+type FileUploadResult struct {
+	FileID             string
+	DriveWebViewURL    string
+	DriveWebContentURL string
+}
+
 type DriveFile struct {
 	Body          io.ReadCloser
 	ContentType   string
@@ -69,7 +83,7 @@ type DriveFile struct {
 }
 
 func NewGoogleDriveStorage(ctx context.Context, cfg GoogleDriveConfig) (*GoogleDriveStorage, error) {
-	if strings.TrimSpace(cfg.CarsFolderID) == "" && strings.TrimSpace(cfg.NewsFolderID) == "" {
+	if strings.TrimSpace(cfg.CarsFolderID) == "" && strings.TrimSpace(cfg.NewsFolderID) == "" && strings.TrimSpace(cfg.SupportFolderID) == "" {
 		return nil, nil
 	}
 
@@ -84,10 +98,11 @@ func NewGoogleDriveStorage(ctx context.Context, cfg GoogleDriveConfig) (*GoogleD
 	}
 
 	return &GoogleDriveStorage{
-		service:      service,
-		carsFolderID: strings.TrimSpace(cfg.CarsFolderID),
-		newsFolderID: strings.TrimSpace(cfg.NewsFolderID),
-		authMode:     authMode,
+		service:         service,
+		carsFolderID:    strings.TrimSpace(cfg.CarsFolderID),
+		newsFolderID:    strings.TrimSpace(cfg.NewsFolderID),
+		supportFolderID: strings.TrimSpace(cfg.SupportFolderID),
+		authMode:        authMode,
 	}, nil
 }
 
@@ -148,12 +163,40 @@ func (s *GoogleDriveStorage) UploadImage(ctx context.Context, input ImageUpload)
 	}
 
 	fileName := uniqueImageName(input.FileName, input.ContentType)
+	result, err := s.uploadFile(ctx, folderID, fileName, input.ContentType, input.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ImageUploadResult{
+		FileID:             result.FileID,
+		DriveWebViewURL:    result.DriveWebViewURL,
+		DriveWebContentURL: result.DriveWebContentURL,
+	}, nil
+}
+
+func (s *GoogleDriveStorage) UploadSupportAttachment(ctx context.Context, input FileUpload) (*FileUploadResult, error) {
+	if s == nil || s.service == nil {
+		return nil, ErrNotConfigured
+	}
+	if input.Body == nil || strings.TrimSpace(input.ContentType) == "" {
+		return nil, ErrUnsupportedContent
+	}
+	if s.supportFolderID == "" {
+		return nil, ErrNotConfigured
+	}
+
+	fileName := uniqueFileName(input.FileName)
+	return s.uploadFile(ctx, s.supportFolderID, fileName, input.ContentType, input.Body)
+}
+
+func (s *GoogleDriveStorage) uploadFile(ctx context.Context, folderID string, fileName string, contentType string, body io.Reader) (*FileUploadResult, error) {
 	file, err := s.service.Files.Create(&drive.File{
 		Name:     fileName,
-		MimeType: input.ContentType,
+		MimeType: contentType,
 		Parents:  []string{folderID},
 	}).
-		Media(input.Body, googleapi.ContentType(input.ContentType)).
+		Media(body, googleapi.ContentType(contentType)).
 		Fields("id, webViewLink, webContentLink").
 		SupportsAllDrives(true).
 		Context(ctx).
@@ -162,7 +205,7 @@ func (s *GoogleDriveStorage) UploadImage(ctx context.Context, input ImageUpload)
 		return nil, mapGoogleAPIError(err)
 	}
 
-	return &ImageUploadResult{
+	return &FileUploadResult{
 		FileID:             file.Id,
 		DriveWebViewURL:    file.WebViewLink,
 		DriveWebContentURL: file.WebContentLink,
@@ -181,9 +224,6 @@ func (s *GoogleDriveStorage) OpenDriveFile(ctx context.Context, fileID string) (
 		Do()
 	if err != nil {
 		return nil, mapGoogleAPIError(err)
-	}
-	if !strings.HasPrefix(metadata.MimeType, "image/") {
-		return nil, ErrUnsupportedContent
 	}
 
 	response, err := s.service.Files.Get(fileID).
@@ -245,6 +285,39 @@ func uniqueImageName(originalName string, contentType string) string {
 		randomHex(4),
 		extension,
 	)
+}
+
+func uniqueFileName(originalName string) string {
+	extension := sanitizeFileExtension(filepath.Ext(filepath.Base(originalName)))
+	baseName := strings.TrimSuffix(filepath.Base(originalName), filepath.Ext(originalName))
+	baseName = sanitizeFileName(baseName)
+	if baseName == "" {
+		baseName = "attachment"
+	}
+
+	return fmt.Sprintf(
+		"%s-%s-%s%s",
+		baseName,
+		time.Now().UTC().Format("20060102-150405"),
+		randomHex(4),
+		extension,
+	)
+}
+
+func sanitizeFileExtension(extension string) string {
+	extension = strings.ToLower(strings.TrimSpace(extension))
+	if len(extension) < 2 || len(extension) > 16 || !strings.HasPrefix(extension, ".") {
+		return ""
+	}
+
+	for _, char := range extension[1:] {
+		isAllowed := (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9')
+		if !isAllowed {
+			return ""
+		}
+	}
+
+	return extension
 }
 
 func extensionForContentType(contentType string) string {

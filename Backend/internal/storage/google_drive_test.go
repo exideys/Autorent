@@ -154,6 +154,44 @@ func TestGoogleDriveStorageUploadImageValidation(t *testing.T) {
 	}
 }
 
+func TestGoogleDriveStorageUploadSupportAttachmentValidation(t *testing.T) {
+	_, err := (*GoogleDriveStorage)(nil).UploadSupportAttachment(context.Background(), FileUpload{})
+	if !errors.Is(err, ErrNotConfigured) {
+		t.Fatalf("expected ErrNotConfigured for nil storage, got %v", err)
+	}
+
+	storage := &GoogleDriveStorage{}
+	_, err = storage.UploadSupportAttachment(context.Background(), FileUpload{
+		Body:        strings.NewReader("file"),
+		ContentType: "application/pdf",
+	})
+	if !errors.Is(err, ErrNotConfigured) {
+		t.Fatalf("expected ErrNotConfigured for missing service, got %v", err)
+	}
+
+	storage = &GoogleDriveStorage{service: &drive.Service{}, supportFolderID: "support-folder"}
+	_, err = storage.UploadSupportAttachment(context.Background(), FileUpload{ContentType: "application/pdf"})
+	if !errors.Is(err, ErrUnsupportedContent) {
+		t.Fatalf("expected ErrUnsupportedContent for nil body, got %v", err)
+	}
+	_, err = storage.UploadSupportAttachment(context.Background(), FileUpload{
+		Body:        strings.NewReader("file"),
+		ContentType: "   ",
+	})
+	if !errors.Is(err, ErrUnsupportedContent) {
+		t.Fatalf("expected ErrUnsupportedContent for empty content type, got %v", err)
+	}
+
+	storage = &GoogleDriveStorage{service: &drive.Service{}}
+	_, err = storage.UploadSupportAttachment(context.Background(), FileUpload{
+		Body:        strings.NewReader("file"),
+		ContentType: "application/pdf",
+	})
+	if !errors.Is(err, ErrNotConfigured) {
+		t.Fatalf("expected ErrNotConfigured for missing support folder, got %v", err)
+	}
+}
+
 func TestGoogleDriveStorageOpenDriveFileRequiresService(t *testing.T) {
 	_, err := (*GoogleDriveStorage)(nil).OpenDriveFile(context.Background(), "file-id")
 	if !errors.Is(err, ErrNotConfigured) {
@@ -192,10 +230,24 @@ func TestImageNameHelpers(t *testing.T) {
 	if got := sanitizeFileName("%%%"); got != "" {
 		t.Fatalf("expected empty sanitized file name, got %q", got)
 	}
+	if got := sanitizeFileExtension(".PDF"); got != ".pdf" {
+		t.Fatalf("unexpected sanitized extension: %q", got)
+	}
+	if got := sanitizeFileExtension(".tar.gz"); got != "" {
+		t.Fatalf("expected unsafe extension to be removed, got %q", got)
+	}
 
 	name := uniqueImageName("../BMW M5.png", "image/png")
 	if !strings.HasPrefix(name, "bmw-m5-") || !strings.HasSuffix(name, ".png") || strings.Contains(name, "/") {
 		t.Fatalf("unexpected unique image name: %q", name)
+	}
+	attachmentName := uniqueFileName("../Invoice Final.PDF")
+	if !strings.HasPrefix(attachmentName, "invoice-final-") || !strings.HasSuffix(attachmentName, ".pdf") || strings.Contains(attachmentName, "/") {
+		t.Fatalf("unexpected unique file name: %q", attachmentName)
+	}
+	attachmentName = uniqueFileName("%%%")
+	if !strings.HasPrefix(attachmentName, "attachment-") || strings.Contains(attachmentName, ".") {
+		t.Fatalf("unexpected fallback attachment name: %q", attachmentName)
 	}
 
 	if got := randomHex(4); len(got) != 8 {
