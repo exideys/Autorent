@@ -1,5 +1,5 @@
 import { Download, Loader2, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { downloadSupportAttachment } from '../lib/api';
 import type { SupportAttachment } from '../types/api';
 
@@ -168,19 +168,34 @@ export const SupportImageAttachmentPreview = ({
   );
 };
 
-export const SelectedImagePreview = ({ file, onRemove, removeLabel }: SelectedImagePreviewProps) => {
-  const previewUrl = useMemo(() => URL.createObjectURL(file), [file]);
+const sanitizeFileName = (name: string) => name.replace(/[<>"]/g, '');
 
-  useEffect(
-    () => () => {
-      URL.revokeObjectURL(previewUrl);
-    },
-    [previewUrl],
-  );
+export const SelectedImagePreview = ({ file, onRemove, removeLabel }: SelectedImagePreviewProps) => {
+  const [previewUrl, setPreviewUrl] = useState('');
+
+  const safeFileName = sanitizeFileName(file.name) || 'Selected image';
+
+  useEffect(() => {
+    if (!isImageFile(file)) {
+      setPreviewUrl('');
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [file]);
+
+  if (!previewUrl.startsWith('blob:')) {
+    return null;
+  }
 
   return (
     <div className="group relative h-20 w-20 overflow-hidden rounded-lg border border-cyan-500/20 bg-black/35">
-      <img src={previewUrl} alt={file.name} className="h-full w-full object-cover" />
+      <img src={previewUrl} alt={safeFileName} className="h-full w-full object-cover" />
       <button
         type="button"
         onClick={onRemove}
@@ -190,7 +205,7 @@ export const SelectedImagePreview = ({ file, onRemove, removeLabel }: SelectedIm
         <X size={13} />
       </button>
       <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/65 px-1.5 py-1 text-[10px] font-semibold text-white">
-        {file.name}
+        {safeFileName}
       </span>
     </div>
   );
