@@ -170,6 +170,8 @@ export const SupportImageAttachmentPreview = ({
 
 const sanitizeFileName = (name: string) => name.replace(/[<>"]/g, '');
 
+const toSafePreviewUrl = (url: string) => (url.startsWith('blob:') ? url : '');
+
 export const SelectedImagePreview = ({ file, onRemove, removeLabel }: SelectedImagePreviewProps) => {
   const [previewUrl, setPreviewUrl] = useState('');
 
@@ -182,7 +184,7 @@ export const SelectedImagePreview = ({ file, onRemove, removeLabel }: SelectedIm
     }
 
     const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
+    setPreviewUrl(toSafePreviewUrl(objectUrl));
 
     return () => {
       URL.revokeObjectURL(objectUrl);
