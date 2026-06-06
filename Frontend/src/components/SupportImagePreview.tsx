@@ -44,6 +44,7 @@ export const SupportImageAttachmentPreview = ({
   const [previewUrl, setPreviewUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const safeAttachmentFileName = sanitizeFileName(attachment.file_name) || 'Attachment';
 
   useEffect(() => {
     let isMounted = true;
@@ -135,9 +136,9 @@ export const SupportImageAttachmentPreview = ({
         onClick={() => setIsViewerOpen(true)}
         className="group relative block max-w-full overflow-hidden rounded-lg text-left shadow-sm"
       >
-        <img src={previewUrl} alt={attachment.file_name} className="h-40 w-56 max-w-full object-cover" />
+        <img src={previewUrl} alt={safeAttachmentFileName} className="h-40 w-56 max-w-full object-cover" />
         <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-8 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
-          {attachment.file_name}
+          {safeAttachmentFileName}
         </span>
       </button>
 
@@ -161,14 +162,14 @@ export const SupportImageAttachmentPreview = ({
               <X size={20} />
             </button>
           </div>
-          <img src={previewUrl} alt={attachment.file_name} className="max-h-[88vh] max-w-[92vw] rounded-lg object-contain shadow-2xl" />
+          <img src={previewUrl} alt={safeAttachmentFileName} className="max-h-[88vh] max-w-[92vw] rounded-lg object-contain shadow-2xl" />
         </div>
       )}
     </>
   );
 };
 
-const sanitizeFileName = (name: string) => name.replace(/[<>"]/g, '');
+const sanitizeFileName = (name: string) => name.replace(/[\r\n<>"'`]/g, '').trim();
 
 export const SelectedImagePreview = ({ file, onRemove, removeLabel }: SelectedImagePreviewProps) => {
   const [previewUrl, setPreviewUrl] = useState('');

@@ -56,6 +56,10 @@ const formatFileSize = (size: number) => {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const sanitizeFileName = (name: string) => name.replace(/[\r\n<>"'`]/g, '').trim();
+
+const getDisplayFileName = (name: string, fallback = 'File') => sanitizeFileName(name) || fallback;
+
 const isAcceptedSupportFile = (file: File) => acceptedSupportFileTypes.includes(file.type);
 
 const isAbortError = (error: unknown) => error instanceof DOMException && error.name === 'AbortError';
@@ -183,8 +187,9 @@ const SupportChatWidget = ({ token, user, onUnauthorized }: SupportChatWidgetPro
   }, [isOpen, messages.length]);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    event.target.value = '';
+    const input = event.currentTarget;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
 
     if (files.some((file) => !isAcceptedSupportFile(file))) {
       setError('Only images, PDF, text, and Office files can be uploaded.');
@@ -248,7 +253,7 @@ const SupportChatWidget = ({ token, user, onUnauthorized }: SupportChatWidgetPro
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = attachment.file_name;
+      link.download = getDisplayFileName(attachment.file_name, 'attachment');
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -368,7 +373,7 @@ const SupportChatWidget = ({ token, user, onUnauthorized }: SupportChatWidgetPro
                                   ) : (
                                     <Download size={14} className="shrink-0" />
                                   )}
-                                  <span className="min-w-0 flex-1 truncate">{attachment.file_name}</span>
+                                  <span className="min-w-0 flex-1 truncate">{getDisplayFileName(attachment.file_name, t('Attachment'))}</span>
                                   <span className="shrink-0 opacity-70">{formatFileSize(attachment.file_size)}</span>
                                 </button>
                               ))}
@@ -405,7 +410,7 @@ const SupportChatWidget = ({ token, user, onUnauthorized }: SupportChatWidgetPro
                       key={`${file.name}-${file.lastModified}-${index}`}
                       className="inline-flex max-w-full items-center gap-2 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-xs text-cyan-50"
                     >
-                      <span className="max-w-44 truncate">{file.name}</span>
+                      <span className="max-w-44 truncate">{getDisplayFileName(file.name, t('Selected file'))}</span>
                       <button
                         type="button"
                         onClick={() => removeFile(index)}
