@@ -16,14 +16,14 @@ export const pages: PageLink[] = [
   { key: 'showroom', label: 'Showroom' },
   { key: 'news', label: 'News' },
   { key: 'how-it-works', label: 'How It Works' },
-  { key: 'why-choose-us', label: 'Why Choose Us' },
   { key: 'contact', label: 'Contact' },
 ];
 
 export const pageContent: Record<PageKey, PageContent> = {
   home: {
     title: 'Drive the Future',
-    subtitle: 'Premium luxury vehicles at your fingertips. Experience unparalleled comfort and style.',
+    subtitle:
+      'Cars for every journey, right at your fingertips. Choose the perfect vehicle for your plans and enjoy comfort, freedom, and confidence wherever the road takes you.',
   },
   services: {
     title: 'Premium Services',

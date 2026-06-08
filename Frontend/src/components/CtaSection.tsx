@@ -1,11 +1,15 @@
 import { motion } from 'framer-motion';
 import { useTranslation } from '../i18n/TranslationContext';
 
-const CtaSection = () => {
+interface CtaSectionProps {
+  onGetStarted: () => void;
+}
+
+const CtaSection = ({ onGetStarted }: CtaSectionProps) => {
   const { t } = useTranslation([
     'Ready to Experience Luxury?',
     'Join thousands of satisfied customers who trust AutoRent for their premium transportation needs.',
-    'Get Started Today',
+    'Get started today',
   ]);
 
   return (
@@ -31,9 +35,10 @@ const CtaSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
           type="button"
+          onClick={onGetStarted}
           className="bg-gradient-to-r from-cyan-500 to-violet-600 hover:from-cyan-600 hover:to-violet-700 text-white font-semibold py-4 px-10 rounded-3xl text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25"
         >
-          {t('Get Started Today')}
+          {t('Get started today')}
         </motion.button>
       </div>
     </section>

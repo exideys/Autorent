@@ -179,6 +179,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [isImageDropActive, setIsImageDropActive] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<HTMLFormElement>(null);
   const [ratingInputs, setRatingInputs] = useState<Record<number, string>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
   const [activePanel, setActivePanel] = useState<AdminPanel>('fleet');
@@ -484,7 +485,9 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
     setEditingId(car.id);
     setError('');
     setMessage('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.requestAnimationFrame(() => {
+      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   };
 
   const handleDelete = async (car: Car) => {
@@ -699,7 +702,7 @@ const AdminDashboard = ({ token, onInventoryChanged, onNewsChanged, onUnauthoriz
         )}
 
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
-          <form onSubmit={handleSubmit} className="rounded-xl border border-cyan-500/20 bg-white/10 p-6">
+          <form ref={editorRef} onSubmit={handleSubmit} className="scroll-mt-24 rounded-xl border border-cyan-500/20 bg-white/10 p-6">
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold text-white">{editingId ? t('Edit Vehicle') : t('Add Vehicle')}</h2>

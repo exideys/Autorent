@@ -1,5 +1,5 @@
 import { Download, Loader2, MessageCircle, Paperclip, RefreshCw, Send, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { ApiError, downloadSupportAttachment, getSupportConversation, sendSupportMessage, streamSupportEvents } from '../lib/api';
 import type { SupportAttachment, SupportConversation, User } from '../types/api';
@@ -75,6 +75,7 @@ const SupportChatWidget = ({ token, user, onUnauthorized }: SupportChatWidgetPro
   const [error, setError] = useState('');
   const [downloadingAttachmentID, setDownloadingAttachmentID] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messages = useMemo(() => conversation?.messages || [], [conversation?.messages]);
   const { t } = useTranslation([
@@ -186,6 +187,16 @@ const SupportChatWidget = ({ token, user, onUnauthorized }: SupportChatWidgetPro
     }
   }, [isOpen, messages.length]);
 
+  useEffect(() => {
+    const input = messageInputRef.current;
+    if (!input) {
+      return;
+    }
+
+    input.style.height = '0px';
+    input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
+  }, [isOpen, messageText]);
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget;
     const files = Array.from(input.files ?? []);
@@ -240,6 +251,15 @@ const SupportChatWidget = ({ token, user, onUnauthorized }: SupportChatWidgetPro
     }
   };
 
+  const handleMessageKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  };
+
   const handleDownloadAttachment = async (attachment: SupportAttachment) => {
     if (!token) {
       return;
@@ -271,7 +291,7 @@ const SupportChatWidget = ({ token, user, onUnauthorized }: SupportChatWidgetPro
   return (
     <div className="fixed bottom-5 right-4 z-50 sm:bottom-6 sm:right-6">
       {isOpen && (
-        <section className="mb-4 flex max-h-[min(42rem,calc(100vh-7rem))] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-violet-300/25 bg-gray-950 shadow-2xl shadow-black/45 sm:w-96">
+        <section className="mb-4 flex max-h-[min(48rem,calc(100vh-7rem))] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-violet-300/25 bg-gray-950 shadow-2xl shadow-black/45 sm:w-[30rem] lg:w-[34rem]">
           <header className="flex items-center justify-between gap-3 bg-violet-600 px-4 py-3 text-white">
             <div className="flex min-w-0 items-center gap-3">
               <span className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-violet-700">
@@ -444,13 +464,15 @@ const SupportChatWidget = ({ token, user, onUnauthorized }: SupportChatWidgetPro
                 onChange={handleFileChange}
               />
               <textarea
+                ref={messageInputRef}
                 value={messageText}
                 onChange={(event) => setMessageText(event.target.value)}
+                onKeyDown={handleMessageKeyDown}
                 disabled={!token || isSending}
                 placeholder={t('Write a message')}
                 rows={1}
                 maxLength={4000}
-                className="min-h-11 flex-1 resize-none rounded-lg border border-white/10 bg-black/35 px-3 py-3 text-sm text-white placeholder-gray-500 outline-none transition-colors focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="min-h-11 max-h-40 flex-1 resize-none overflow-y-auto rounded-lg border border-white/10 bg-black/35 px-3 py-3 text-sm text-white placeholder-gray-500 outline-none transition-colors focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
               />
               <button
                 type="submit"
