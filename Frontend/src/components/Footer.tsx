@@ -9,7 +9,7 @@ interface FooterProps {
 
 const Footer = ({ contact, onNavigate }: FooterProps) => {
   const { t } = useTranslation([
-    'Driving the future of luxury transportation.',
+    'Driving the future of comfortable  transportation.',
     'Services',
     'Luxury Cars',
     'VIP Concierge',
@@ -33,7 +33,7 @@ const Footer = ({ contact, onNavigate }: FooterProps) => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h3 className="text-2xl font-bold text-cyan-400 mb-4">AutoRent</h3>
-            <p className="text-gray-300">{t('Driving the future of luxury transportation.')}</p>
+            <p className="text-gray-300">{t('Driving the future of comfortable  transportation.')}</p>
           </div>
           <div>
             <h4 className="text-lg font-semibold mb-4">{t('Services')}</h4>

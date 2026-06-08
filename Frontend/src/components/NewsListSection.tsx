@@ -112,12 +112,12 @@ const NewsListSection = ({ articles, error, isLoading, onRetry }: NewsListSectio
             <p className="mt-2 text-sm text-gray-400">{t('Published admin posts will appear here.')}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             {featuredArticle && (
               <motion.article
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                className="overflow-hidden rounded-xl border border-cyan-500/20 bg-black/45 shadow-lg shadow-black/25"
+                className="self-start overflow-hidden rounded-xl border border-cyan-500/20 bg-black/45 shadow-lg shadow-black/25"
               >
                 <div className="relative h-64 md:h-80">
                   <img
@@ -141,7 +141,7 @@ const NewsListSection = ({ articles, error, isLoading, onRetry }: NewsListSectio
                     {displayDate(featuredArticle.published_at || featuredArticle.created_at)}
                   </p>
                   <h3 className="mt-3 text-3xl font-bold text-white">{t(featuredArticle.title)}</h3>
-                  <p className="mt-3 text-gray-300">{t(featuredArticle.summary)}</p>
+                  <p className="mt-3 line-clamp-3 text-gray-300">{t(featuredArticle.summary)}</p>
                   <button
                     type="button"
                     onClick={() => setSelectedArticle(featuredArticle)}

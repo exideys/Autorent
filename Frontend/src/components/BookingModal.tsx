@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Calendar, Clock, MapPin, Phone, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
 import { currencyFormatter } from '../lib/carDisplay';
 import { createRentalOrder } from '../lib/api';
@@ -34,11 +34,41 @@ const initialForm: BookingFormState = {
 const fieldClass =
   'h-11 w-full rounded-lg border border-cyan-500/25 bg-black/60 px-3 text-sm text-white placeholder-gray-500 transition-colors focus:border-cyan-300 focus:outline-none';
 
+const dateInputValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const timeInputValue = (date: Date) => {
+  const hours = `${date.getHours()}`.padStart(2, '0');
+  const minutes = `${date.getMinutes()}`.padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
+const openNativePicker = (input: HTMLInputElement | null) => {
+  input?.focus();
+  try {
+    input?.showPicker?.();
+  } catch {
+    // Some browsers only allow showPicker during direct input activation.
+  }
+};
+
 const BookingModal = ({ car, token, onCreated, onClose }: BookingModalProps) => {
   const [form, setForm] = useState<BookingFormState>(initialForm);
   const [error, setError] = useState('');
   const [isCreated, setIsCreated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const pickupDateRef = useRef<HTMLInputElement>(null);
+  const returnDateRef = useRef<HTMLInputElement>(null);
+  const pickupTimeRef = useRef<HTMLInputElement>(null);
+  const now = new Date();
+  const today = dateInputValue(now);
+  const currentTime = timeInputValue(now);
+  const minimumReturnDate = form.pickupDate && form.pickupDate > today ? form.pickupDate : today;
+  const minimumPickupTime = form.pickupDate === today ? currentTime : undefined;
   const { t } = useTranslation([
     'Booking',
     'Daily price',
@@ -53,6 +83,8 @@ const BookingModal = ({ car, token, onCreated, onClose }: BookingModalProps) => 
     'Delivery details, child seat, route notes',
     'Please sign in to book a vehicle.',
     'Please fill in all booking fields.',
+    'Pickup date cannot be earlier than today.',
+    'Pickup time cannot be earlier than now.',
     'Return date cannot be before pickup date.',
     'Unable to create booking.',
     'Your order has been successfully accepted.',
@@ -91,8 +123,18 @@ const BookingModal = ({ car, token, onCreated, onClose }: BookingModalProps) => 
       return;
     }
 
-    if (new Date(form.returnDate) < new Date(form.pickupDate)) {
+    if (form.pickupDate < today) {
+      setError('Pickup date cannot be earlier than today.');
+      return;
+    }
+
+    if (form.returnDate < form.pickupDate) {
       setError('Return date cannot be before pickup date.');
+      return;
+    }
+
+    if (form.pickupDate === today && form.pickupTime < timeInputValue(new Date())) {
+      setError('Pickup time cannot be earlier than now.');
       return;
     }
 
@@ -172,26 +214,59 @@ const BookingModal = ({ car, token, onCreated, onClose }: BookingModalProps) => 
                 placeholder={t('Hotel, airport, office')}
               />
             </label>
-            <label className="block space-y-2 text-sm text-gray-300">
+            <label
+              className="block space-y-2 text-sm text-gray-300"
+              onClick={() => openNativePicker(pickupDateRef.current)}
+            >
               <span className="flex items-center gap-2">
                 <Calendar size={16} className="text-cyan-300" />
                 {t('Pickup date')}
               </span>
-              <input type="date" value={form.pickupDate} onChange={(event) => updateField('pickupDate', event.target.value)} className={fieldClass} />
+              <input
+                ref={pickupDateRef}
+                type="date"
+                min={today}
+                value={form.pickupDate}
+                onClick={() => openNativePicker(pickupDateRef.current)}
+                onChange={(event) => updateField('pickupDate', event.target.value)}
+                className={fieldClass}
+              />
             </label>
-            <label className="block space-y-2 text-sm text-gray-300">
+            <label
+              className="block space-y-2 text-sm text-gray-300"
+              onClick={() => openNativePicker(returnDateRef.current)}
+            >
               <span className="flex items-center gap-2">
                 <Calendar size={16} className="text-cyan-300" />
                 {t('Return date')}
               </span>
-              <input type="date" value={form.returnDate} onChange={(event) => updateField('returnDate', event.target.value)} className={fieldClass} />
+              <input
+                ref={returnDateRef}
+                type="date"
+                min={minimumReturnDate}
+                value={form.returnDate}
+                onClick={() => openNativePicker(returnDateRef.current)}
+                onChange={(event) => updateField('returnDate', event.target.value)}
+                className={fieldClass}
+              />
             </label>
-            <label className="block space-y-2 text-sm text-gray-300">
+            <label
+              className="block space-y-2 text-sm text-gray-300"
+              onClick={() => openNativePicker(pickupTimeRef.current)}
+            >
               <span className="flex items-center gap-2">
                 <Clock size={16} className="text-cyan-300" />
                 {t('Pickup time')}
               </span>
-              <input type="time" value={form.pickupTime} onChange={(event) => updateField('pickupTime', event.target.value)} className={fieldClass} />
+              <input
+                ref={pickupTimeRef}
+                type="time"
+                min={minimumPickupTime}
+                value={form.pickupTime}
+                onClick={() => openNativePicker(pickupTimeRef.current)}
+                onChange={(event) => updateField('pickupTime', event.target.value)}
+                className={fieldClass}
+              />
             </label>
             <label className="block space-y-2 text-sm text-gray-300 sm:col-span-2">
               <span>{t('Notes')}</span>

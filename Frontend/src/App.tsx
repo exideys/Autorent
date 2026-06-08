@@ -294,7 +294,7 @@ const App = () => {
             />
           )}
 
-          <div className={isHome ? '' : 'pt-24'}>
+          <div className={isHome ? '' : 'pt-20'}>
             {(isHome || activePage === 'services') && <ServicesSection items={translatedServices} />}
 
             {isHome && <AICarAssistant />}
@@ -333,7 +333,7 @@ const App = () => {
 
             {activePage === 'contact' && <ContactSection contact={contactInfo} />}
 
-            {isHome && <CtaSection />}
+            {isHome && <CtaSection onGetStarted={() => handleNavigate('showroom')} />}
           </div>
         </>
       )}

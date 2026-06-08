@@ -1,7 +1,8 @@
-import { CalendarDays, Hash, LayoutDashboard, LogOut, Mail, Pencil, Save, Shield, Star, UserCircle, X } from 'lucide-react';
+import { CalendarDays, Eye, Hash, LayoutDashboard, LogOut, Mail, Pencil, Save, Shield, Star, UserCircle, X } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from '../i18n/TranslationContext';
-import { ApiError, listMyRentalOrders, updateCurrentUser } from '../lib/api';
+import { ApiError, listMyRentalOrders, resolveApiAssetUrl, updateCurrentUser } from '../lib/api';
+import { fallbackImageUrl } from '../lib/carDisplay';
 import type { RentalOrder, User } from '../types/api';
 
 interface ProfilePageProps {
@@ -30,6 +31,8 @@ const formatDate = (value: string) => {
   return Number.isNaN(date.getTime()) ? 'Not available' : dateFormatter.format(date);
 };
 
+const rentalCarImage = (order: RentalOrder) => resolveApiAssetUrl(order.car.image_url, fallbackImageUrl);
+
 const initialsFor = (name: string) => {
   const initials = name
     .trim()
@@ -52,6 +55,7 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick, onU
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [profileError, setProfileError] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<RentalOrder | null>(null);
   const [profileForm, setProfileForm] = useState({
     firstName: user.first_name || '',
     lastName: user.last_name || '',
@@ -98,6 +102,12 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick, onU
     'Rentals',
     'Your placed orders',
     'active',
+    'Details',
+    'Vehicle details',
+    'Close vehicle details',
+    'Daily price',
+    'Rental period',
+    'Pickup',
     'Unable to load rental orders',
     'You do not have rental orders yet.',
     'Total',
@@ -108,7 +118,7 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick, onU
     status,
     ordersError,
     profileError,
-    ...orders.map((order) => order.status),
+    ...orders.flatMap((order) => [order.status, order.car.status]),
   ]);
   const displayDate = (value: string) => {
     const formattedDate = formatDate(value);
@@ -457,6 +467,14 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick, onU
                       <p className="text-gray-500">{t('Deposit')}</p>
                       <p className="mt-1 font-semibold text-white">{currencyFormatter.format(order.deposit)}</p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedOrder(order)}
+                      className="col-span-2 inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-500/30 px-3 py-2 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-500/10"
+                    >
+                      <Eye size={16} />
+                      {t('Details')}
+                    </button>
                   </div>
                 </article>
               ))}
@@ -464,6 +482,72 @@ const ProfilePage = ({ user, token, onAdminClick, onLogout, onShowroomClick, onU
           )}
         </section>
       </div>
+
+      {selectedOrder && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 px-4 py-6 backdrop-blur-sm">
+          <article
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-cyan-500/30 bg-gray-950 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('Vehicle details')}
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-cyan-500/20 bg-gray-950/95 p-5 backdrop-blur">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">{t('Vehicle details')}</p>
+                <h3 className="mt-1 break-words text-2xl font-bold text-white">
+                  {selectedOrder.car.brand} {selectedOrder.car.model} ({selectedOrder.car.year})
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedOrder(null)}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyan-500/30 text-cyan-100 transition-colors hover:bg-cyan-500/10"
+                aria-label={t('Close vehicle details')}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <img
+              src={rentalCarImage(selectedOrder)}
+              alt={`${selectedOrder.car.brand} ${selectedOrder.car.model}`}
+              referrerPolicy="no-referrer"
+              className="h-72 w-full object-cover"
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = fallbackImageUrl;
+              }}
+            />
+
+            <div className="grid gap-3 p-5 sm:grid-cols-2">
+              <div className="rounded-lg border border-cyan-500/10 bg-black/30 p-4">
+                <p className="text-sm text-gray-500">{t('Daily price')}</p>
+                <p className="mt-1 font-semibold text-cyan-300">{currencyFormatter.format(selectedOrder.car.price_per_day)}</p>
+              </div>
+              <div className="rounded-lg border border-cyan-500/10 bg-black/30 p-4">
+                <p className="text-sm text-gray-500">{t('Deposit')}</p>
+                <p className="mt-1 font-semibold text-white">{currencyFormatter.format(selectedOrder.car.deposit)}</p>
+              </div>
+              <div className="rounded-lg border border-cyan-500/10 bg-black/30 p-4">
+                <p className="text-sm text-gray-500">{t('Status')}</p>
+                <p className="mt-1 font-semibold capitalize text-white">{t(selectedOrder.car.status)}</p>
+              </div>
+              <div className="rounded-lg border border-cyan-500/10 bg-black/30 p-4">
+                <p className="text-sm text-gray-500">{t('Rental period')}</p>
+                <p className="mt-1 font-semibold text-white">
+                  {displayDate(selectedOrder.start_date)} {t('to')} {displayDate(selectedOrder.end_date)}
+                </p>
+              </div>
+              <div className="rounded-lg border border-cyan-500/10 bg-black/30 p-4 sm:col-span-2">
+                <p className="text-sm text-gray-500">{t('Pickup')}</p>
+                <p className="mt-1 break-words font-semibold text-white">
+                  {selectedOrder.pickup_location} {t('at')} {selectedOrder.pickup_time}
+                </p>
+              </div>
+            </div>
+          </article>
+        </div>
+      )}
     </main>
   );
 };
