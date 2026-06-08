@@ -291,7 +291,7 @@ const SupportChatWidget = ({ token, user, onUnauthorized }: SupportChatWidgetPro
   return (
     <div className="fixed bottom-5 right-4 z-50 sm:bottom-6 sm:right-6">
       {isOpen && (
-        <section className="mb-4 flex max-h-[min(48rem,calc(100vh-7rem))] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-violet-300/25 bg-gray-950 shadow-2xl shadow-black/45 sm:w-[30rem] lg:w-[34rem]">
+        <section className="mb-4 flex h-[min(44rem,calc(100vh-7rem))] w-[calc(100vw-2rem)] max-w-[24rem] flex-col overflow-hidden rounded-xl border border-violet-300/25 bg-gray-950 shadow-2xl shadow-black/45 sm:w-[24rem]">
           <header className="flex items-center justify-between gap-3 bg-violet-600 px-4 py-3 text-white">
             <div className="flex min-w-0 items-center gap-3">
               <span className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-violet-700">
