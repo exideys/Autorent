@@ -14,7 +14,7 @@ ENV VITE_BASE_PATH=$VITE_BASE_PATH
 ENV VITE_GOOGLE_AUTH_CLIENT_ID=$VITE_GOOGLE_AUTH_CLIENT_ID
 RUN npm run build
 
-FROM nginx:1.31.1-alpine
+FROM nginx:1.31.2-alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
